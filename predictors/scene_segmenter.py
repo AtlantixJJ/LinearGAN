@@ -7,8 +7,8 @@ from torchvision.transforms import Normalize
 import torch
 import torch.nn.functional as F
 
-from utils.misc import read_selected_labels, read_ade20k_labels
-from utils.op import bu
+from lib.misc import read_selected_labels, read_ade20k_labels
+from lib.op import bu
 
 ADE_NUMCLASSES = 150
 SELECTED_LABELS = read_selected_labels()
@@ -67,4 +67,4 @@ class SceneSegmenter(BasePredictor):
     if y.size(2) != size:
       y = bu(x, size)
     y = torch.cat([torch.zeros_like(y[:, :1]), y], 1)
-    return y.argmax(1).unsqueeze(0)
+    return y.argmax(1)

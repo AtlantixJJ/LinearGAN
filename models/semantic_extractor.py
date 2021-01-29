@@ -5,8 +5,7 @@ import torch.nn.functional as F
 import numpy as np
 import pytorch_lightning as pl
 
-from utils import op
-import loss
+from lib import op, loss
 from pytorch_lightning.metrics.functional import iou, precision_recall
 
 
@@ -147,21 +146,20 @@ class SELearner(pl.LightningModule):
 
   def training_step(self, batch, batch_idx):
     segs, label = self(batch)
-    segloss = loss.segloss_final(segs, label,
-      loss_fn_layer=self.loss_fn_layer,
-      loss_fn_final=self.loss_fn_final)
+    seg = op.bu(segs[-1], label.size(2))
+    segloss = self.loss_fn_final(seg, label)
 
-    total_loss = 0
-    n_layers = len(segloss) - 1 # The last one is final segmentation
-    for i in range(n_layers + 1): # 0 ~ len(segloss) - 1
-      layer = 'final' if i == n_layers else f'layer{i}'
-      self.log(f'CE/{layer}', segloss[i])
-      total_loss = total_loss + segloss[i]
+    #total_loss = 0
+    #n_layers = len(segloss) - 1 # The last one is final segmentation
+    #for i in range(n_layers + 1): # 0 ~ len(segloss) - 1
+    #  layer = 'final' if i == n_layers else f'layer{i}'
+    #  self.log(f'CE/{layer}', segloss[i])
+    #  total_loss = total_loss + segloss[i]
+    total_loss = segloss
     self.log("main/total", total_loss)
 
-    # save prediction results
-    dt = seg[0][-1].argmax(1).detach()
-    gt = label[0].detach()
+    dt = seg.argmax(1).detach()
+    gt = label.detach()
     IoU = iou(dt, gt, num_classes=self.model.n_class,
       ignore_index=0, absent_score=-1, reduction='none')
     pixelacc = (dt == gt).sum() / float(dt.shape.numel())
@@ -239,9 +237,9 @@ class LSE(SemanticExtractor):
       lw_type : The layer weight type. Candidates are softplus, sigmoid, none.
       use_bias : default is not to use bias.
     """
-    super().__init__(**kwargs)
     self.lw_type = lw_type
     self.use_bias = use_bias
+    super().__init__(**kwargs)
     self.build()
 
   def build(self):
@@ -312,11 +310,11 @@ class NSE1(LSE):
     Args:
       ksize : The convolution kernel size.
     """
-    SemanticExtractor.__init__(self, **kwargs)
     self.lw_type = lw_type
     self.use_bias = use_bias
     self.ksize = ksize
     self.n_layers = n_layers
+    SemanticExtractor.__init__(self, **kwargs)
     self.build()
   
   def arch_info(self):
@@ -362,9 +360,9 @@ class NSE2(SemanticExtractor):
       Args:
         ksize: kernel size of convolution
     """
-    super().__init__(**kwargs)
     self.type = "NSE-2"
     self.ksize = ksize
+    super().__init__(**kwargs)
 
   def arch_info(self):
     base_dic = SemanticExtractor.arch_info(self)

@@ -1,2 +1,4 @@
 models/pretrain
 predictors/pretrain
+expr
+*__pycache__

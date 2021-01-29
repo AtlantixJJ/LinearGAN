@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from utils import op
+from lib import op
 
 def mask_cross_entropy_loss(mask, x, y): # requires more than editing need
     ce = F.cross_entropy(x, y, reduction="none")
@@ -41,21 +41,17 @@ def int2onehot(x, n):
     #return z
     return z.scatter_(1, x, 1)
 
-def segloss_final(segs, label, loss_fn_layer, loss_fn_final):
-  N = len(segs[0])
-  seglosses = []
-  for cat_id in range(label.shape[0]):
-    segloss = []
-    # layer loss
-    for i in range(N):
-      seg = segs[cat_id][i]
-      segloss.append(loss_fn_final(seg if seg.size(2) == label.size(3) \
-        else op.bu(seg, label.size(3)), label[cat_id]))
-    seglosses.append(segloss)
-  return seglosses
+
+def segloss(segs, label, loss_fn):
+  segloss = []
+  size = label.size(3)
+  for seg in segs:
+    seg = op.bu(seg, size) if seg.size(2) == size else seg
+    segloss.append(loss_fn(seg, label))
+  return segloss
 
 
-def segloss(segs, label, loss_fn_layer, loss_fn_final):
+def segloss_bce(segs, label, loss_fn_layer, loss_fn_final):
   N = len(segs[0])
   seglosses = []
   for cat_id in range(label.shape[0]):

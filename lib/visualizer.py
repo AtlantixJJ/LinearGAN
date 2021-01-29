@@ -10,6 +10,9 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import torch
 
+from lib.op import bu
+
+
 __all__ = [
     'get_label_color', 'get_grid_shape', 'get_blank_image',
     'load_image', 'save_image',
@@ -18,6 +21,40 @@ __all__ = [
     'HtmlPageVisualizer', 'HtmlPageReader', 'VideoReader', 'VideoWriter'
 ]
 
+
+def get_images_SE(G, SE, P, z, size=256):
+  with torch.no_grad():
+    if hasattr(G, "mapping"):
+      wp = G.truncation(G.mapping(z))
+      image, feature = G.synthesis(wp, generate_feature=True)
+    else:
+      image, feature = G(z, generate_feature=True)
+    label = P(image, size=size).long()
+  seg = SE(feature)
+  return bu(image, size), seg, label
+
+
+def viz_SE(G, SE, P, z, size=256):
+  """Get the images, segmentations, and layer semantics for visualization."""
+  images = []
+  layer_vizs = []
+  seg_vizs = []
+  label_vizs = []
+  for i in range(z.shape[0]): # batch
+    image, segs, label = get_images_SE(G, SE, P, z[i:i+1])
+    images.append(image)
+    imgs = []
+    for seg in segs:
+      seg_label = bu(seg, size)[0].argmax(0)
+      imgs.append(segviz_torch(seg_label))
+    seg_vizs.append(imgs[-1])
+    layer_vizs.append(torch.stack(imgs))
+    label_vizs.append(segviz_torch(label[0]))
+  images = (torch.cat(images).clamp(-1, 1).cpu() + 1) / 2
+  layer_vizs = torch.stack(layer_vizs).cpu()
+  seg_vizs = torch.stack(seg_vizs).cpu()
+  label_vizs = torch.stack(label_vizs).cpu()
+  return images, seg_vizs, label_vizs, layer_vizs
 
 def get_label_color(label_idx):
   return high_contrast_arr[label_idx]

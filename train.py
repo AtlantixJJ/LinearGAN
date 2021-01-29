@@ -7,18 +7,16 @@ import pytorch_lightning as pl
 import pytorch_lightning.loggers as pl_logger
 from torch.utils.data.dataloader import DataLoader
 
-# These import will affect cuda device setting
-from utils.misc import print
-from lib.dataset import NoiseDataModule
-from models.semantic_extractor import SELearner
 from models.helper import *
 from lib.callback import *
-from predictors.face_segmenter import FaceSegmenter
-from predictors.scene_segmenter import SceneSegmenter
-
+from lib.dataset import NoiseDataModule
+from models.semantic_extractor import SELearner
 
 def main(args):
-  DIR = f"{args.expr}/{args.G}_{args.SE}_l{args.loss_type}_ls{args.latent_strategy}"
+  from predictors.face_segmenter import FaceSegmenter
+  from predictors.scene_segmenter import SceneSegmenter
+
+  DIR = f"{args.expr}/{args.G}_{args.SE}_l{args.loss_type}_ls{args.latent_strategy}_lw{args.layer_weight}"
   G = build_generator(args.G)
   is_face = "celebahq" in args.G or "ffhq" in args.G
   P = FaceSegmenter() if is_face else SceneSegmenter(model_name=args.G)
@@ -37,39 +35,34 @@ def main(args):
       layers=layers)
   SE.cuda().train()
 
-
-  if hasattr(SE, "layer_weight")
+  if hasattr(SE, "layer_weight"):
     print("=> Layer weight")
     weight = SE._calc_layer_weight()
-    for i in range(weight.shape[0]):
-      print(f"=> Layer {j} weight: {weight[i, j]:3f}")
-
+    s = " ".join([f"{w:.2f}" for w in weight])
+    print(f"=> Layer weight: {s}")
 
   dm = NoiseDataModule(train_size=1024, batch_size=1)
   z = torch.randn(6, 512).cuda()
-  vc = SEVisualizerCallback(z, interval=100)
+  vc = SEVisualizerCallback(z, interval=5 * 1024)
   callbacks = [vc, TrainingEvaluationCallback()]
-  #if "LSE" in args.SE:
-  #  callbacks.append(WeightVisualizerCallback())
 
   logger = pl_logger.TensorBoardLogger(DIR)
-  learner = SELearner(model=SE, G=G.net, P=P, optim=args.optim,
+  learner = SELearner(model=SE, G=G.net, P=P,
+    lr=args.lr,
     loss_type=args.loss_type,
-    resolution=512 if is_face and not is_feature_norm else 256,
     latent_strategy=args.latent_strategy,
+    resolution=512 if is_face else 256,
     save_dir=DIR)
   trainer = pl.Trainer(
     logger=logger,
-    profiler=True, #pl.profiler.AdvancedProfiler(),
-    accumulate_grad_batches=64 if args.reload else {0:1, 2:4, 18:64},
-    #track_grad_norm=2,
+    accumulate_grad_batches={0:1, 2:4, 18:64},
     max_epochs=50,
     progress_bar_refresh_rate=0 if args.slurm else 1,
     callbacks=callbacks,
     gpus=1,
     distributed_backend='dp')
   trainer.fit(learner, dm)
-  save_to_pth(SE, DIR)
+  save_semantic_extractor(SE, f"{DIR}/{args.G}_{args.SE}.pth")
 
 
 if __name__ == "__main__":
@@ -98,7 +91,7 @@ if __name__ == "__main__":
     help='If the script is run on slurm.')
   parser.add_argument('--gpu-id', type=str, default='0',
     help='GPUs to use. (default: %(default)s)')
-
   args = parser.parse_args()
-  from utils.misc import set_cuda_devices
+  from lib.misc import set_cuda_devices
   set_cuda_devices(args.gpu_id)
+  main(args)

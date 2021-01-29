@@ -19,7 +19,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from utils.op import bu
+from lib.op import bu
 
 __all__ = ['StyleGAN2GeneratorNet', 'UpsamplingLayer']
 

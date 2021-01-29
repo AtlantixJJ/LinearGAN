@@ -28,13 +28,9 @@ class NoiseDataModule(pl.LightningDataModule):
     self.batch_size = batch_size
     self.train_ds = NoiseDataset(train_size, latent_size)
     self.val_ds = NoiseDataset(val_size, latent_size, fixed=True)
-    self.test_ds = NoiseDataset(epoch_size, latent_size)
 
   def train_dataloader(self):
     return DataLoader(self.train_ds, batch_size=self.batch_size)
 
   def val_dataloader(self):
     return DataLoader(self.val_ds, batch_size=self.batch_size)
-
-  def test_dataloader(self):
-    return DataLoader(self.test_ds, batch_size=self.batch_size)

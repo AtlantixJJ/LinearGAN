@@ -5,7 +5,7 @@ import pytorch_lightning as pl
 import matplotlib.pyplot as plt
 import numpy as np
 
-from .visualizer import segviz_torch
+from .visualizer import viz_SE
 from .op import *
 
 
@@ -71,39 +71,6 @@ class ImageVisualizerCallback(pl.Callback):
       disp_images.clamp(0, 1), global_step=self.count // 1000)
 
 
-def get_images_SE(G, SE, P, z):
-  with torch.no_grad():
-    if hasattr(G, "mapping"):
-      wp = G.truncation(G.mapping(z))
-      image, feature = G.synthesis(wp, generate_feature=True)
-    else:
-      image, feature = G(z, generate_feature=True)
-    label = P(image).long() # (cat, N, H, W)
-  seg = SE(feature) # [[], [], []] (category groups, sery)
-  return image, seg, label
-
-
-def viz_SE(G, SE, P, z):
-  images = []
-  layer_images = []
-  seg_vizs = []
-  label_vizs = []
-  for i in range(z.shape[0]): # batch
-    image, segs, label = get_images_SE(G, SE, P, z[i:i+1])
-    images.append(image)
-    for j in range(label.shape[0]): # cat
-      if i == 0:
-        for k in range(len(segs[j])):
-          seg_label = bu(segs[j][k], 256)[0].argmax(0)
-          layer_images.append(segviz_torch(seg_label))
-      seg_label = segs[j][-1][0].argmax(0) # only visualize final output
-      seg_vizs.append(segviz_torch(seg_label))
-      label_vizs.append(segviz_torch(label[j, 0]))
-  images = (torch.cat(images).clamp(-1, 1) + 1) / 2
-  img = torch.stack(layer_images)
-  return images.cpu(), torch.stack(seg_vizs), torch.stack(label_vizs), img
-
-
 class TrainingEvaluationCallback(pl.Callback):
   def __init__(self):
     super().__init__()
@@ -127,10 +94,10 @@ class TrainingEvaluationCallback(pl.Callback):
     mIoU = c_IoU[c_IoU > -1].mean()
     tensorboard.add_scalar('val/mIoU', mIoU, self.count)
     tensorboard.add_scalar('val/pixelacc', pixelacc, self.count)
-    if pl_module.best_val < mIoU: # manual checkpoint
-      print(f"=> Updating best model from {pl_module.best_val:3f} to {mIoU:3f}")
-      pl_module.best_val = mIoU
-      save_to_pth(pl_module.model, pl_module.save_dir)
+    #if pl_module.best_val < mIoU: # manual checkpoint
+    #  print(f"=> Updating best model from {pl_module.best_val:3f} to {mIoU:3f}")
+    #  pl_module.best_val = mIoU
+    #  save_semantic_extractor(pl_module.model, f"{pl_module.save_dir}/best_model.pth")
     self.vals.append([mIoU, pixelacc, c_IoU])
     torch.save(self.vals, pl_module.save_dir + "/train_evaluation.pth")
     pl_module.train_evaluation = []
@@ -149,16 +116,13 @@ class SEVisualizerCallback(pl.Callback):
       return
 
     tensorboard = trainer.logger.experiment
-    images, seg_vizs, label_vizs, layer_images = viz_SE(pl_module.G,
-      pl_module.model, pl_module.P, self.z)
-    if images.size(3) > 256:
-      images, seg_vizs, label_vizs, layer_images = bu([
-        images, seg_vizs, label_vizs, layer_images], 256)
+    images, seg_vizs, label_vizs, layer_vizs = viz_SE(
+      pl_module.G, pl_module.model, pl_module.P, self.z, size=256)
     disp = vutils.make_grid(torch.cat([images, seg_vizs, label_vizs]),
       nrow=images.shape[0])
-    tensorboard.add_image('semantic extraction visualization',
+    tensorboard.add_image('Image / Output / Label',
       disp, global_step=self.count // self.interval)
     disp_layer = vutils.make_grid(torch.cat([
-      layer_images, images[0:1], label_vizs[0:1]]), nrow=4)
-    tensorboard.add_image('layer semantics',
+      layer_vizs[0], images[0:1], label_vizs[0:1]]), nrow=4)
+    tensorboard.add_image('Layer-wise Semantics',
       disp_layer, global_step=self.count // self.interval)    
