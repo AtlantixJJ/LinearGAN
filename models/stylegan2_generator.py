@@ -1,0 +1,572 @@
+# python 3.7
+"""Contains the generator class of StyleGAN2.
+
+This class is derived from the `BaseGenerator` class defined in
+`base_generator.py`.
+"""
+
+import numpy as np
+
+import torch
+
+from . import model_settings
+from .base_generator import BaseGenerator
+from .stylegan2_generator_network import StyleGAN2GeneratorNet
+
+__all__ = ['StyleGAN2Generator']
+
+
+class StyleGAN2Generator(BaseGenerator):
+  """Defines the generator class of StyleGAN2.
+
+  Same as StyleGAN, StyleGAN2 also has Z space, W space, and W+ (WP) space.
+  """
+
+  def __init__(self, model_name, logger=None, truncation_psi=None, randomize_noise=False):
+    self.gan_type = 'stylegan2'
+    self.randomize_noise = randomize_noise
+    self.truncation_psi = truncation_psi if truncation_psi is not None \
+      else model_settings.STYLEGAN2_TRUNCATION_PSI
+    super().__init__(model_name, logger)
+
+
+  def build(self):
+    self.z_space_dim = getattr(self, 'z_space_dim', 512)
+    self.w_space_dim = getattr(self, 'w_space_dim', 512)
+    self.num_mapping_layers = getattr(self, 'num_mapping_layers', 8)
+    self.repeat_w = getattr(self, 'repeat_w', True)
+    self.final_tanh = getattr(self, 'final_tanh', False)
+    self.label_size = getattr(self, 'label_size', 0)
+    self.g_architecture_type = getattr(self, 'g_architecture_type', 'skip')
+    self.fused_modulate = getattr(self, 'fused_modulate', True)
+    #self.truncation_psi = model_settings.STYLEGAN2_TRUNCATION_PSI
+    self.truncation_layers = model_settings.STYLEGAN2_TRUNCATION_LAYERS
+    self.fmaps_base = getattr(self, 'fmaps_base', 32 << 10)
+    self.fmaps_max = getattr(self, 'fmaps_max', 512)
+    self.net = StyleGAN2GeneratorNet(
+        resolution=self.resolution,
+        z_space_dim=self.z_space_dim,
+        w_space_dim=self.w_space_dim,
+        num_mapping_layers=self.num_mapping_layers,
+        repeat_w=self.repeat_w,
+        image_channels=self.image_channels,
+        final_tanh=self.final_tanh,
+        label_size=self.label_size,
+        architecture_type=self.g_architecture_type,
+        fused_modulate=self.fused_modulate,
+        truncation_psi=self.truncation_psi,
+        truncation_layers=self.truncation_layers,
+        randomize_noise=self.randomize_noise,
+        fmaps_base=self.fmaps_base,
+        fmaps_max=self.fmaps_max)
+    self.num_layers = self.net.num_layers
+    self.model_specific_vars = ['truncation.truncation']
+
+  def convert_tf_weights(self, test_num=10):
+    # pylint: disable=import-outside-toplevel
+    import sys
+    import pickle
+    import warnings
+    warnings.filterwarnings('ignore', category=FutureWarning)
+    import tensorflow as tf
+    tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+    # pylint: enable=import-outside-toplevel
+
+    sess = tf.compat.v1.InteractiveSession()
+
+    self.logger.info(f'Loading tf weights from `{self.tf_weight_path}`.')
+    sys.path.insert(0, self.official_code_path)
+    with open(self.tf_weight_path, 'rb') as f:
+      if self.has_encoder:
+        _, _, _, tf_net = pickle.load(f)  # E, G, D, Gs
+      else:
+        _, _, tf_net = pickle.load(f)  # G, D, Gs
+    sys.path.pop(0)
+    self.logger.info(f'Successfully loaded!')
+
+    self.logger.info(f'Converting tf weights to pytorch version.')
+    tf_vars = dict(tf_net.__getstate__()['variables'])
+    tf_vars.update(
+        dict(tf_net.components.mapping.__getstate__()['variables']))
+    tf_vars.update(
+        dict(tf_net.components.synthesis.__getstate__()['variables']))
+    state_dict = self.net.state_dict()
+    for pth_var_name, tf_var_name in self.net.pth_to_tf_var_mapping.items():
+      assert tf_var_name in tf_vars
+      assert pth_var_name in state_dict
+      self.logger.debug(f'  Converting `{tf_var_name}` to `{pth_var_name}`.')
+      var = torch.from_numpy(np.array(tf_vars[tf_var_name]))
+      if 'weight' in pth_var_name:
+        if 'fc' in pth_var_name:
+          var = var.permute(1, 0)
+        elif 'conv' in pth_var_name:
+          var = var.permute(3, 2, 0, 1)
+      state_dict[pth_var_name] = var
+    self.logger.info(f'Successfully converted!')
+
+    self.logger.info(f'Saving pytorch weights to `{self.weight_path}`.')
+    for var_name in self.model_specific_vars:
+      del state_dict[var_name]
+    torch.save(state_dict, self.weight_path)
+    self.logger.info(f'Successfully saved!')
+
+    self.load()
+
+    # Start testing if needed.
+    if test_num <= 0 or not tf.test.is_built_with_cuda():
+      self.logger.warning(f'Skip testing the weights converted from tf model!')
+      sess.close()
+      return
+    self.logger.info(f'Testing conversion results.')
+    self.net.eval().to(self.run_device)
+    total_distance = 0.0
+    for i in range(test_num):
+      latent_code = self.easy_sample(1)
+      if self.label_size:
+        label_id = np.random.randint(self.label_size)
+        tf_label = np.zeros((1, self.label_size), np.float32)
+        tf_label[0, label_id] = 1.0
+      else:
+        label_id = None
+        tf_label = None
+      tf_output = tf_net.run(latent_code,
+                             tf_label,
+                             truncation_psi=self.truncation_psi,
+                             truncation_cutoff=self.truncation_layers,
+                             randomize_noise=self.randomize_noise)
+      pth_output = self.synthesize(latent_code, labels=label_id)['image']
+      distance = np.average(np.abs(tf_output - pth_output))
+      self.logger.debug(f'  Test {i:03d}: distance {distance:.6e}.')
+      total_distance += distance
+    self.logger.info(f'Average distance is {total_distance / test_num:.6e}.')
+
+    sess.close()
+
+  def sample(self, num, latent_space_type='z', **kwargs):
+    """Samples latent codes randomly.
+
+    Args:
+      num: Number of latent codes to sample. Should be positive.
+      latent_space_type: Type of latent space from which to sample latent code.
+        Only [`z`, `w`, `wp`] are supported. Case insensitive. (default: `z`)
+
+    Returns:
+      A `numpy.ndarray` as sampled latend codes.
+
+    Raises:
+      ValueError: If the given `latent_space_type` is not supported.
+    """
+    latent_space_type = latent_space_type.lower()
+    if latent_space_type == 'z':
+      latent_codes = np.random.randn(num, self.z_space_dim)
+    elif latent_space_type in ['w', 'wp']:
+      z = self.easy_sample(num, latent_space_type='z')
+      latent_codes = []
+      for inputs in self.get_batch_inputs(z, self.ram_size):
+        outputs = self.easy_synthesize(latent_codes=inputs,
+                                       latent_space_type='z',
+                                       generate_style=False,
+                                       generate_image=False)
+        latent_codes.append(outputs[latent_space_type])
+      latent_codes = np.concatenate(latent_codes, axis=0)
+      if latent_space_type == 'w':
+        assert latent_codes.shape == (num, self.w_space_dim)
+      elif latent_space_type == 'wp':
+        assert latent_codes.shape == (num, self.num_layers, self.w_space_dim)
+    else:
+      raise ValueError(f'Latent space type `{latent_space_type}` is invalid!')
+
+    return latent_codes.astype(np.float32)
+
+  def preprocess(self, latent_codes, latent_space_type='z', **kwargs):
+    """Preprocesses the input latent code if needed.
+
+    Args:
+      latent_codes: The input latent codes for preprocessing.
+      latent_space_type: Type of latent space to which the latent codes belong.
+        Only [`z`, `w`, `wp`] are supported. Case insensitive. (default: `z`)
+
+    Returns:
+      The preprocessed latent codes which can be used as final input for the
+        generator.
+
+    Raises:
+      ValueError: If the given `latent_space_type` is not supported.
+    """
+    if not isinstance(latent_codes, np.ndarray):
+      raise ValueError(f'Latent codes should be with type `numpy.ndarray`!')
+
+    latent_space_type = latent_space_type.lower()
+    if latent_space_type == 'z':
+      latent_codes = latent_codes.reshape(-1, self.z_space_dim)
+      norm = np.linalg.norm(latent_codes, axis=1, keepdims=True)
+      latent_codes = latent_codes / norm * np.sqrt(self.z_space_dim)
+    elif latent_space_type == 'w':
+      latent_codes = latent_codes.reshape(-1, self.w_space_dim)
+    elif latent_space_type == 'wp':
+      latent_codes = latent_codes.reshape(-1, self.num_layers, self.w_space_dim)
+    else:
+      raise ValueError(f'Latent space type `{latent_space_type}` is invalid!')
+
+    return latent_codes.astype(np.float32)
+
+  def _synthesize(self,
+                  latent_codes,
+                  latent_space_type='z',
+                  labels=None,
+                  generate_style=False,
+                  generate_image=True):
+    """Synthesizes images with given latent codes.
+
+    One can choose whether to generate the layer-wise style codes.
+
+    Args:
+      latent_codes: Input latent codes for image synthesis.
+      latent_space_type: Type of latent space to which the latent codes belong.
+        Only [`z`, `w`, `wp`] are supported. Case insensitive. (default: `z`)
+      labels: Additional labels for conditional generation.
+      generate_style: Whether to generate the layer-wise style codes. (default:
+        False)
+      generate_image: Whether to generate the final image synthesis. (default:
+        True)
+
+    Returns:
+      A dictionary whose values are raw outputs from the generator.
+    """
+    if not isinstance(latent_codes, np.ndarray):
+      raise ValueError(f'Latent codes should be with type `numpy.ndarray`!')
+
+    results = {}
+    if latent_codes.shape[0] <= 0 or latent_codes.shape[0] > self.batch_size:
+      raise ValueError(f'Batch size should be no larger than '
+                       f'{self.batch_size}, but {latent_codes.shape[0]} is '
+                       f'received!')
+    labels = self.get_ont_hot_labels(latent_codes.shape[0], labels)
+    if self.label_size:
+      results['label'] = labels
+    ls = None if labels is None else self.to_tensor(labels.astype(np.float32))
+
+    latent_space_type = latent_space_type.lower()
+    # Generate from Z space.
+    if latent_space_type == 'z':
+      if latent_codes.ndim != 2 or latent_codes.shape[1] != self.z_space_dim:
+        raise ValueError(f'Latent codes should be with shape [batch_size, '
+                         f'latent_space_dim], where `latent_space_dim` equals '
+                         f'to {self.z_space_dim}!\n'
+                         f'But {latent_codes.shape} is received!')
+      zs = self.to_tensor(latent_codes.astype(np.float32))
+      ws = self.net.mapping(zs, ls)
+      wps = self.net.truncation(ws)
+      results['z'] = latent_codes
+      results['w'] = self.get_value(ws)
+      results['wp'] = self.get_value(wps)
+    # Generate from W space.
+    elif latent_space_type == 'w':
+      if latent_codes.ndim != 2 or latent_codes.shape[1] != self.w_space_dim:
+        raise ValueError(f'Latent codes should be with shape [batch_size, '
+                         f'w_space_dim], where `w_space_dim` equals to '
+                         f'{self.w_space_dim}!\n'
+                         f'But {latent_codes.shape} is received!')
+      ws = self.to_tensor(latent_codes.astype(np.float32))
+      wps = self.net.truncation(ws)
+      results['w'] = latent_codes
+      results['wp'] = self.get_value(wps)
+    # Generate from W+ space.
+    elif latent_space_type == 'wp':
+      if (latent_codes.ndim != 3 or
+          latent_codes.shape[1:] != (self.num_layers, self.w_space_dim)):
+        raise ValueError(f'Latent codes should be with shape [batch_size, '
+                         f'num_layers, w_space_dim], where `num_layers` equals '
+                         f'to {self.num_layers}, and `w_space_dim` equals to '
+                         f'{self.w_space_dim}!\n'
+                         f'But {latent_codes.shape} is received!')
+      wps = self.to_tensor(latent_codes.astype(np.float32))
+      results['wp'] = latent_codes
+    else:
+      raise ValueError(f'Latent space type `{latent_space_type}` is invalid!')
+
+    if generate_style:
+      for i in range(self.num_layers - 1):
+        style = self.net.synthesis.__getattr__(f'layer{i}').style(wps[:, i, :])
+        results[f'style{i:02d}'] = self.get_value(style)
+      style = self.net.synthesis.__getattr__(
+          f'output{i // 2}').style(wps[:, i + 1, :])
+      results[f'style{i + 1:02d}'] = self.get_value(style)
+
+    if generate_image:
+      images = self.net.synthesis(wps)
+      results['image'] = self.get_value(images)
+
+    if self.use_cuda:
+      torch.cuda.empty_cache()
+
+    return results
+
+  def synthesize(self,
+                 latent_codes,
+                 latent_space_type='z',
+                 labels=None,
+                 generate_style=False,
+                 generate_image=True,
+                 **kwargs):
+    return self.batch_run(latent_codes,
+                          lambda x: self._synthesize(
+                              x,
+                              latent_space_type=latent_space_type,
+                              labels=labels,
+                              generate_style=generate_style,
+                              generate_image=generate_image))
+
+  def __call__(self,
+                  latent_codes,
+                  latent_space_type='z',
+                  labels=None):
+    """Synthesizes images with given latent codes.
+
+    One can choose whether to generate the layer-wise style codes.
+
+    Args:
+      latent_codes: Input latent codes for image synthesis.
+      latent_space_type: Type of latent space to which the latent codes belong.
+        Only [`z`, `w`, `wp`] are supported. Case insensitive. (default: `z`)
+      labels: Additional labels for conditional generation.
+      generate_style: Whether to generate the layer-wise style codes. (default:
+        False)
+      generate_image: Whether to generate the final image synthesis. (default:
+        True)
+
+    Returns:
+      A dictionary whose values are raw outputs from the generator.
+    """
+    if not isinstance(latent_codes, np.ndarray):
+      raise ValueError(f'Latent codes should be with type `numpy.ndarray`!')
+
+    results = {}
+    if latent_codes.shape[0] <= 0 or latent_codes.shape[0] > self.batch_size:
+      raise ValueError(f'Batch size should be no larger than '
+                       f'{self.batch_size}, but {latent_codes.shape[0]} is '
+                       f'received!')
+    labels = self.get_ont_hot_labels(latent_codes.shape[0], labels)
+    if self.label_size:
+      results['label'] = labels
+    ls = None if labels is None else self.to_tensor(labels.astype(np.float32))
+
+    latent_space_type = latent_space_type.lower()
+    # Generate from Z space.
+    if latent_space_type == 'z':
+      if latent_codes.ndim != 2 or latent_codes.shape[1] != self.z_space_dim:
+        raise ValueError(f'Latent codes should be with shape [batch_size, '
+                         f'latent_space_dim], where `latent_space_dim` equals '
+                         f'to {self.z_space_dim}!\n'
+                         f'But {latent_codes.shape} is received!')
+      zs = self.to_tensor(latent_codes.astype(np.float32))
+      ws = self.net.mapping(zs, ls)
+      wps = self.net.truncation(ws)
+      results['z'] = latent_codes
+      results['w'] = self.get_value(ws)
+      results['wp'] = self.get_value(wps)
+    # Generate from W space.
+    elif latent_space_type == 'w':
+      if latent_codes.ndim != 2 or latent_codes.shape[1] != self.w_space_dim:
+        raise ValueError(f'Latent codes should be with shape [batch_size, '
+                         f'w_space_dim], where `w_space_dim` equals to '
+                         f'{self.w_space_dim}!\n'
+                         f'But {latent_codes.shape} is received!')
+      ws = self.to_tensor(latent_codes.astype(np.float32))
+      wps = self.net.truncation(ws)
+      results['w'] = latent_codes
+      results['wp'] = self.get_value(wps)
+    # Generate from W+ space.
+    elif latent_space_type == 'wp':
+      if (latent_codes.ndim != 3 or
+          latent_codes.shape[1:] != (self.num_layers, self.w_space_dim)):
+        raise ValueError(f'Latent codes should be with shape [batch_size, '
+                         f'num_layers, w_space_dim], where `num_layers` equals '
+                         f'to {self.num_layers}, and `w_space_dim` equals to '
+                         f'{self.w_space_dim}!\n'
+                         f'But {latent_codes.shape} is received!')
+      wps = self.to_tensor(latent_codes.astype(np.float32))
+      results['wp'] = latent_codes
+    else:
+      raise ValueError(f'Latent space type `{latent_space_type}` is invalid!')
+
+    image, feats, images = self.net.synthesis(wps,
+      generate_feature=True,
+      generate_imgsery=True)
+    results['feature'] = feats
+    results['image'] = image
+    results['image_sery'] = images
+
+    if self.use_cuda:
+      torch.cuda.empty_cache()
+
+    return results
+
+  def forward_middle(self,
+                  latent_codes,
+                  x,
+                  img,
+                  index,
+                  latent_space_type='z',
+                  labels=None,
+                  ):
+    """Forward through generator starting from a featuremap x and intermediate image img.
+
+    Args:
+      latent_codes: Input latent codes for image synthesis.
+      x: The featuremap as the starting point of forwarding.
+      img: The intermediate image. Needed for StyleGAN2 skip architecture.
+      index: The starting layer index.
+      latent_space_type: Type of latent space to which the latent codes belong.
+        Only [`z`, `w`, `wp`] are supported. Case insensitive. (default: `z`)
+      labels: Additional labels for conditional generation.
+
+    Returns:
+      A dictionary whose values are raw outputs from the generator.
+    """
+    if not isinstance(latent_codes, np.ndarray):
+      raise ValueError(f'Latent codes should be with type `numpy.ndarray`!')
+
+    results = {}
+    if latent_codes.shape[0] <= 0 or latent_codes.shape[0] > self.batch_size:
+      raise ValueError(f'Batch size should be no larger than '
+                       f'{self.batch_size}, but {latent_codes.shape[0]} is '
+                       f'received!')
+    labels = self.get_ont_hot_labels(latent_codes.shape[0], labels)
+    if self.label_size:
+      results['label'] = labels
+    ls = None if labels is None else self.to_tensor(labels.astype(np.float32))
+
+    latent_space_type = latent_space_type.lower()
+    # Generate from Z space.
+    if latent_space_type == 'z':
+      if latent_codes.ndim != 2 or latent_codes.shape[1] != self.z_space_dim:
+        raise ValueError(f'Latent codes should be with shape [batch_size, '
+                         f'latent_space_dim], where `latent_space_dim` equals '
+                         f'to {self.z_space_dim}!\n'
+                         f'But {latent_codes.shape} is received!')
+      zs = self.to_tensor(latent_codes.astype(np.float32))
+      ws = self.net.mapping(zs, ls)
+      wps = self.net.truncation(ws)
+      results['z'] = latent_codes
+      results['w'] = self.get_value(ws)
+      results['wp'] = self.get_value(wps)
+    # Generate from W space.
+    elif latent_space_type == 'w':
+      if latent_codes.ndim != 2 or latent_codes.shape[1] != self.w_space_dim:
+        raise ValueError(f'Latent codes should be with shape [batch_size, '
+                         f'w_space_dim], where `w_space_dim` equals to '
+                         f'{self.w_space_dim}!\n'
+                         f'But {latent_codes.shape} is received!')
+      ws = self.to_tensor(latent_codes.astype(np.float32))
+      wps = self.net.truncation(ws)
+      results['w'] = latent_codes
+      results['wp'] = self.get_value(wps)
+    # Generate from W+ space.
+    elif latent_space_type == 'wp':
+      if (latent_codes.ndim != 3 or
+          latent_codes.shape[1:] != (self.num_layers, self.w_space_dim)):
+        raise ValueError(f'Latent codes should be with shape [batch_size, '
+                         f'num_layers, w_space_dim], where `num_layers` equals '
+                         f'to {self.num_layers}, and `w_space_dim` equals to '
+                         f'{self.w_space_dim}!\n'
+                         f'But {latent_codes.shape} is received!')
+      wps = self.to_tensor(latent_codes.astype(np.float32))
+      results['wp'] = latent_codes
+    else:
+      raise ValueError(f'Latent space type `{latent_space_type}` is invalid!')
+
+    images, feats = self.net.synthesis.forward_middle(wps, x, img, index)
+    results['feature'] = feats
+    results['image'] = images
+
+    if self.use_cuda:
+      torch.cuda.empty_cache()
+
+    return results
+
+  def forward_multiple(self,
+                  latent_codes,
+                  x,
+                  img,
+                  xs,
+                  mask,
+                  index,
+                  latent_space_type='z',
+                  labels=None,
+                  ):
+    """Forward through generator starting from a featuremap x and intermediate image img.
+
+    Args:
+      latent_codes: Input latent codes for image synthesis.
+      x: The featuremap as the starting point of forwarding.
+      img: The intermediate image. Needed for StyleGAN2 skip architecture.
+      index: The starting layer index.
+      latent_space_type: Type of latent space to which the latent codes belong.
+        Only [`z`, `w`, `wp`] are supported. Case insensitive. (default: `z`)
+      labels: Additional labels for conditional generation.
+
+    Returns:
+      A dictionary whose values are raw outputs from the generator.
+    """
+    if not isinstance(latent_codes, np.ndarray):
+      raise ValueError(f'Latent codes should be with type `numpy.ndarray`!')
+
+    results = {}
+    if latent_codes.shape[0] <= 0 or latent_codes.shape[0] > self.batch_size:
+      raise ValueError(f'Batch size should be no larger than '
+                       f'{self.batch_size}, but {latent_codes.shape[0]} is '
+                       f'received!')
+    labels = self.get_ont_hot_labels(latent_codes.shape[0], labels)
+    if self.label_size:
+      results['label'] = labels
+    ls = None if labels is None else self.to_tensor(labels.astype(np.float32))
+
+    latent_space_type = latent_space_type.lower()
+    # Generate from Z space.
+    if latent_space_type == 'z':
+      if latent_codes.ndim != 2 or latent_codes.shape[1] != self.z_space_dim:
+        raise ValueError(f'Latent codes should be with shape [batch_size, '
+                         f'latent_space_dim], where `latent_space_dim` equals '
+                         f'to {self.z_space_dim}!\n'
+                         f'But {latent_codes.shape} is received!')
+      zs = self.to_tensor(latent_codes.astype(np.float32))
+      ws = self.net.mapping(zs, ls)
+      wps = self.net.truncation(ws)
+      results['z'] = latent_codes
+      results['w'] = self.get_value(ws)
+      results['wp'] = self.get_value(wps)
+    # Generate from W space.
+    elif latent_space_type == 'w':
+      if latent_codes.ndim != 2 or latent_codes.shape[1] != self.w_space_dim:
+        raise ValueError(f'Latent codes should be with shape [batch_size, '
+                         f'w_space_dim], where `w_space_dim` equals to '
+                         f'{self.w_space_dim}!\n'
+                         f'But {latent_codes.shape} is received!')
+      ws = self.to_tensor(latent_codes.astype(np.float32))
+      wps = self.net.truncation(ws)
+      results['w'] = latent_codes
+      results['wp'] = self.get_value(wps)
+    # Generate from W+ space.
+    elif latent_space_type == 'wp':
+      if (latent_codes.ndim != 3 or
+          latent_codes.shape[1:] != (self.num_layers, self.w_space_dim)):
+        raise ValueError(f'Latent codes should be with shape [batch_size, '
+                         f'num_layers, w_space_dim], where `num_layers` equals '
+                         f'to {self.num_layers}, and `w_space_dim` equals to '
+                         f'{self.w_space_dim}!\n'
+                         f'But {latent_codes.shape} is received!')
+      wps = self.to_tensor(latent_codes.astype(np.float32))
+      results['wp'] = latent_codes
+    else:
+      raise ValueError(f'Latent space type `{latent_space_type}` is invalid!')
+
+    images, feats = self.net.synthesis.forward_multiple(
+      wps, x, mask, xs, img, index)
+    results['feature'] = feats
+    results['image'] = images
+
+    if self.use_cuda:
+      torch.cuda.empty_cache()
+
+    return results
