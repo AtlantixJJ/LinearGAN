@@ -1,4 +1,5 @@
 models/pretrain
 predictors/pretrain
 expr
+results
 *__pycache__

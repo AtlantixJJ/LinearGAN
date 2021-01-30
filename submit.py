@@ -8,14 +8,12 @@ args = parser.parse_args()
 
 def sr_LSE_arch():
   cmds = []
-  srcmd = "python train.py --G {G} --SE LSE --lr {lr} --loss-type {loss_type} --layer-weight {layer_weight}"
-  for G in ["stylegan2_bedroom", "stylegan_bedroom"]:
-    for lr in [0.01, 0.001]:
-      for layer_weight in ["softplus", "none"]:
-        for loss_type in ["focal", "normal"]:
-          cmds.append(srcmd.format(
-            G=G, lr=lr,
-            layer_weight=layer_weight, loss_type=loss_type))
+  srcmd = "python train.py --G {G} --SE LSE --lr 0.001 --loss-type normal --layer-weight {layer_weight} --latent-strategy {latent_strategy}"
+  for G in ["stylegan2_bedroom", "stylegan_bedroom", "stylegan_celebahq"]:
+    for layer_weight in ["softplus", "none"]:
+      for latent_strategy in ['notrunc-mixwp', 'trunc-wp']:
+        cmds.append(srcmd.format(G=G, layer_weight=layer_weight,
+          latent_strategy=latent_strategy))
   return cmds
 
 

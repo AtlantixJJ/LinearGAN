@@ -304,7 +304,7 @@ class NSE1(LSE):
   """A direct nonlinear generalization from LSE.
   """
 
-  def __init__(self, lw_type="softplus", use_bias=False,
+  def __init__(self, lw_type="softplus", use_bias=True,
                ksize=1, n_layers=3, **kwargs):
     """
     Args:

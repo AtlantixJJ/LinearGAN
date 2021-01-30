@@ -16,7 +16,7 @@ def main(args):
   from predictors.face_segmenter import FaceSegmenter
   from predictors.scene_segmenter import SceneSegmenter
 
-  DIR = f"{args.expr}/{args.G}_{args.SE}_l{args.loss_type}_ls{args.latent_strategy}_lw{args.layer_weight}"
+  DIR = f"{args.expr}/{args.G}_{args.SE}_l{args.loss_type}_ls{args.latent_strategy}_lw{args.layer_weight}_lr{args.lr}"
   G = build_generator(args.G)
   is_face = "celebahq" in args.G or "ffhq" in args.G
   P = FaceSegmenter() if is_face else SceneSegmenter(model_name=args.G)
@@ -29,6 +29,7 @@ def main(args):
     dims = [s.shape[1] for s in features]
     layers = list(range(len(dims)))
     SE = build_semantic_extractor(
+      lw_type=args.layer_weight,
       model_name=args.SE,
       n_class=P.num_categories,
       dims=dims,
@@ -43,8 +44,10 @@ def main(args):
 
   dm = NoiseDataModule(train_size=1024, batch_size=1)
   z = torch.randn(6, 512).cuda()
-  vc = SEVisualizerCallback(z, interval=5 * 1024)
-  callbacks = [vc, TrainingEvaluationCallback()]
+  callbacks = [
+    SEVisualizerCallback(z, interval=5 * 1024),
+    TrainingEvaluationCallback(),
+    WeightVisualizerCallback()]
 
   logger = pl_logger.TensorBoardLogger(DIR)
   learner = SELearner(model=SE, G=G.net, P=P,

@@ -36,18 +36,17 @@ class WeightVisualizerCallback(pl.Callback):
     if len(self.history) > self.size:
       del self.history[0]
     
-    N, M = len(self.history), weight.shape[1]
+    N, M = len(self.history), weight.shape[0]
     data = np.stack(self.history)
     cdata = np.cumsum(data, 2)
-    for i in range(weight.shape[0]):
-      fig = plt.figure(figsize=(10, 5))
-      for j in range(M):
-        plt.bar(range(N), data[:, i, j],
-          bottom=None if j == 0 else cdata[:, i, j - 1])
-      plt.legend([f"layer {j}" for j in range(M)])
-      trainer.logger.experiment.add_figure(f"cat{i}/layer weight",
-        fig, self.count // self.interval)
-      plt.close()
+    fig = plt.figure(figsize=(10, 5))
+    for i in range(M):
+      plt.bar(range(N), data[:, i],
+        bottom=None if i == 0 else cdata[:, i - 1])
+      plt.legend([f"layer {i}" for i in range(M)])
+    trainer.logger.experiment.add_figure(f"Layer Weight",
+      fig, self.count // self.interval)
+    plt.close()
 
 
 class ImageVisualizerCallback(pl.Callback):
@@ -89,15 +88,11 @@ class TrainingEvaluationCallback(pl.Callback):
     for i in range(IoU.shape[0]):
       v = IoU[IoU > -0.1]
       c_IoU[i] = -1 if len(v) == 0 else v.mean()
-      tensorboard.add_scalar(f'val/{i:02d}_{labels[i]}_IoU',
+      tensorboard.add_scalar(f'val/{labels[i]}_IoU',
         c_IoU[i], self.count)
     mIoU = c_IoU[c_IoU > -1].mean()
     tensorboard.add_scalar('val/mIoU', mIoU, self.count)
     tensorboard.add_scalar('val/pixelacc', pixelacc, self.count)
-    #if pl_module.best_val < mIoU: # manual checkpoint
-    #  print(f"=> Updating best model from {pl_module.best_val:3f} to {mIoU:3f}")
-    #  pl_module.best_val = mIoU
-    #  save_semantic_extractor(pl_module.model, f"{pl_module.save_dir}/best_model.pth")
     self.vals.append([mIoU, pixelacc, c_IoU])
     torch.save(self.vals, pl_module.save_dir + "/train_evaluation.pth")
     pl_module.train_evaluation = []

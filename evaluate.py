@@ -3,12 +3,13 @@ sys.path.insert(0, ".")
 import torch
 from tqdm import tqdm
 import numpy as np
+from pytorch_lightning.metrics.functional import iou, precision_recall
+
+from predictors.face_segmenter import FaceSegmenter
+from predictors.scene_segmenter import SceneSegmenter
 from lib.dataset import NoiseDataModule
 from models.semantic_extractor import SELearner
 from models.helper import *
-from predictors.face_segmenter import FaceSegmenter
-from predictors.scene_segmenter import SceneSegmenter
-
 
 def G_from_SE(fpath):
   name = fpath.split("/")[-2]
@@ -23,11 +24,9 @@ def eval_SE(SE_path, num, save_path, latent_strategy):
     return
   G_name, G = G_from_SE(SE_path)
   is_face = "celebahq" in SE_path or "ffhq" in SE_path
-  is_feature_norm = "LSE-F" in SE_path or "LSE-WF" in SE_path
   P = FaceSegmenter() if is_face else SceneSegmenter(model_name=G_name)
-
-  resolution = 512 if is_face and not is_feature_norm else 256
-  SE = load_from_pth(SE_path)
+  resolution = 512 if is_face else 256
+  SE = load_semantic_extractor(SE_path)
   SE.cuda().eval()
   res = evaluate_SE(SE, G, P, resolution, num, latent_strategy)
   fpath = f"{save_path}/{SE_args}_evaluation.pth"
@@ -64,32 +63,32 @@ def evaluate_SE(SE, G, P, resolution, num, ls='trunc-wp'):
     with torch.no_grad():
       seg, label = learner(torch.randn(1, 512).cuda())
 
-    for cat_id in range(len(SE.category_groups)):
-      dt = seg[cat_id][-1].argmax(1)
-      gt = label[cat_id]
-      IoU = iou(dt, gt, num_classes=SE.n_class,
-        ignore_index=0, absent_score=-1, reduction='none')
-      pixelacc = (dt == gt).sum() / float(dt.shape.numel())
-      res.append([pixelacc, IoU])
+    dt = seg[-1].argmax(1)
+    gt = label
+    IoU = iou(dt, gt, num_classes=SE.n_class,
+      ignore_index=0, absent_score=-1, reduction='none')
+    pixelacc = (dt == gt).sum() / float(dt.shape.numel())
+    res.append([pixelacc, IoU])
   return res
 
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
-  parser.add_argument('--SE', type=str, default='expr',
+  parser.add_argument('--SE', type=str, default='expr/semantics',
     help='The path to the experiment directories.')
   parser.add_argument('--out-dir', type=str, default='results/semantics/',
     help='The output directory.')
-  parser.add_argument('--num', type=int, default=10000,
+  parser.add_argument('--num', type=int, default=5000,
     help='The evaluation sample.')
   parser.add_argument('--gpu-id', default='0',
     help='Which GPU(s) to use. (default: `0`)')
   parser.add_argument('--latent-strategy', default='trunc-wp',
+    choices=['trunc-wp', 'notrunc-mixwp'],
     help='trunc-wp, notrunc-mixwp')
   args = parser.parse_args()
 
   # These import will affect cuda device setting
-  from utils.misc import set_cuda_devices
+  from lib.misc import set_cuda_devices
   n_gpus = set_cuda_devices(args.gpu_id)
 
   if os.path.isdir(args.SE):
@@ -110,7 +109,7 @@ if __name__ == "__main__":
     slots = [[] for _ in gpus]
     for i, m in enumerate(model_paths):
       gpu = gpus[i % len(gpus)]
-      slots[i % len(gpus)].append(f"CUDA_VISIBLE_DEVICES={gpu} python3 script/semantics/evaluate_models.py --gpu-id {gpu} --SE {m} --num {args.num} --out-dir {args.out_dir} --latent-strategy {args.latent_strategy}")
+      slots[i % len(gpus)].append(f"CUDA_VISIBLE_DEVICES={gpu} python3 evaluate.py --gpu-id {gpu} --SE {m} --num {args.num} --out-dir {args.out_dir} --latent-strategy {args.latent_strategy}")
     for s in slots:
       cmd = " && ".join(s) + " &"
       print(cmd)
