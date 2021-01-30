@@ -5,10 +5,9 @@ from tqdm import tqdm
 import numpy as np
 from pytorch_lightning.metrics.functional import iou, precision_recall
 
-from predictors.face_segmenter import FaceSegmenter
-from predictors.scene_segmenter import SceneSegmenter
 from lib.dataset import NoiseDataModule
 from models.semantic_extractor import SELearner
+from predictors import face_segmenter, scene_segmenter
 from models.helper import *
 
 
@@ -33,7 +32,8 @@ def eval_SE_path(SE_path, num, save_path, latent_strategy):
     return
   G_name, G = G_from_SE(SE_path)
   is_face = "celebahq" in SE_path or "ffhq" in SE_path
-  P = FaceSegmenter() if is_face else SceneSegmenter(model_name=G_name)
+  P = face_segmenter.FaceSegmenter() if is_face \
+    else scene_segmenter.SceneSegmenter(model_name=G_name)
   resolution = 512 if is_face else 256
 
   SE = load_semantic_extractor(SE_path)

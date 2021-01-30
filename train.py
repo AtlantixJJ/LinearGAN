@@ -11,7 +11,7 @@ from models.helper import *
 from lib.callback import *
 from lib.dataset import NoiseDataModule
 from models.semantic_extractor import SELearner
-from evalute import evaluate_SE, write_results, aggregate_iou
+from evaluate import evaluate_SE, write_results, aggregate_iou
 
 
 def main(args):
@@ -69,11 +69,12 @@ def main(args):
     distributed_backend='dp')
   trainer.fit(learner, dm)
   save_semantic_extractor(SE, f"{DIR}/{args.G}_{args.SE}.pth")
+
+  res_dir = DIR.replace(args.expr, "results/semantics/")
   num = 5000
   mIoU, c_ious = evaluate_SE(SE, G, P,
     resolution, num, args.latent_strategy)
-  res_path = DIR.replace(args.expr, "results/semantics/")
-  write_results(res_path, mIoU, c_ious)
+  write_results(f"{res_dir}_els{args.latent_strategy}.txt", mIoU, c_ious)
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()

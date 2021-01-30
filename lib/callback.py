@@ -38,7 +38,7 @@ class WeightVisualizerCallback(pl.Callback):
     
     N, M = len(self.history), weight.shape[0]
     data = np.stack(self.history)
-    cdata = np.cumsum(data, 2)
+    cdata = np.cumsum(data, 1)
     fig = plt.figure(figsize=(10, 5))
     for i in range(M):
       plt.bar(range(N), data[:, i],

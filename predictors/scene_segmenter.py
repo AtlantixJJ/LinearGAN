@@ -2,7 +2,6 @@ import sys
 sys.path.insert(0, ".")
 
 from .base_predictor import BasePredictor
-from encoding.models import get_model, get_segmentation_model
 from torchvision.transforms import Normalize
 import torch
 import torch.nn.functional as F
@@ -28,6 +27,7 @@ class SceneSegmenter(BasePredictor):
     self.input_transform = Normalize([.485, .456, .406], [.229, .224, .225])
 
   def build(self):
+    from encoding.models import get_model
     self.net = get_model("DeepLab_ResNeSt200_ADE", pretrained=True).eval()
     self.net.aux = False
     self.num_categories = self.net.nclass + 1 # add background class
