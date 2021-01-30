@@ -1,34 +1,35 @@
 import torch, sys, os, argparse
 sys.path.insert(0, ".")
-from utils.misc import listkey_convert, str_latex_table
-from utils.op import torch2numpy
+from lib.misc import listkey_convert, str_latex_table
+from lib.op import torch2numpy
 import numpy as np
 
 
 def get_table_suit(name):
   # default: full
-  methods = ["LSE", "LSE-W", "LSE-F", "LSE-WF", "NSE-1", "NSE-2"]
+  methods = ["LSE", "NSE-1", "NSE-2"]
   if "concise" in name:
     methods = ["LSE", "NSE-1", "NSE-2"]
-  ls = ""
+  
   if "notrunc" in name:
-    ls = "_lsnotrunc-mixwp"
+    ls = "lsnotrunc-mixwp"
+  else:
+    ls = "lstrunc-wp"
+
   if "-nteval" in name:
-    ls += "_elsnotrunc-mixwp"
+    els = "elsnotrunc-mixwp"
   elif "-teval" in name:
-    ls += "_elstrunc-wp"  
+    els = "elstrunc-wp"  
   
   # default
-  total_linears = [1]
-  layer_detachs = [0]
+  layer_weights = ["softplus"]
   loss_types = ["focal"]
-  optims = ["adam-0.001"]
 
   if "LSE_arch_compare" in name:
-    Gs = ["stylegan2_ffhq", "stylegan2_church"]
-    total_linears = [0, 1]
-    layer_detachs = [0, 1]
+    Gs = ["stylegan2_bedroom", "stylegan_bedroom"]
+    methods = ["LSE"]
     loss_types = ["focal", "normal"]
+
   elif "face" in name:
     Gs = ["pggan_celebahq", "stylegan_celebahq", "stylegan2_ffhq"]
   elif "bedroom" in name:
@@ -45,7 +46,7 @@ def get_table_suit(name):
       "pggan" : ["pggan_celebahq", "pggan_bedroom", "pggan_church"],
       "stylegan" : ["stylegan_celebahq", "stylegan_bedroom", "stylegan_church"],
       "stylegan2" : ["stylegan2_ffhq", "stylegan2_bedroom", "stylegan2_church"]}
-  return methods, Gs, optims, total_linears, layer_detachs, loss_types, ls
+  return methods, Gs, layer_weights, loss_types, ls, els
 
 
 def formal_name(name):
@@ -58,24 +59,19 @@ def formal_name(name):
   return name
 
 
-def get_args_name(optims=["adam-0.001"], total_linears=[1], layer_detachs=[0], loss_types=["focal"], ls=""):
-  for optim in optims:
-    for total_linear in total_linears:
-      for layer_detach in layer_detachs:
-        for loss_type in loss_types:
-          yield f"{optim}_t{total_linear}_d{layer_detach}_l{loss_type}{ls}"
+def get_args_name(layer_weights=["softplus"], loss_types=["focal"], ls="", els=""):
+  for layer_weight in layer_weights:
+    for loss_type in loss_types:
+      yield f"l{loss_type}_{ls}_lw{layer_weight}_{els}"
 
 
 def aggregate_iou(res):
   ic_iou = torch.stack([r[1] for r in res])
   c_iou = torch.zeros(ic_iou.shape[1])
-  #print(ic_iou.shape, c_iou.shape)
   for c in range(ic_iou.shape[1]):
     val = ic_iou[:, c]
     val = val[val > -0.1]
     c_iou[c] = -1 if val.shape[0] == 0 else val.mean()
-    #if c_iou[c] > 0:
-    #  print(f"{c} : {c_iou[c]} : {val[val > -0.1].shape}")
   mIoU = c_iou[c_iou > -1].mean()
   return mIoU
 
@@ -179,7 +175,7 @@ def iou_from_pth(fpath):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument("--dir", default="results/semantics/", help="")
-  parser.add_argument("--name", default="other-concise-notrunc-teval")
+  parser.add_argument("--name", default="LSE_arch_compare-trunc-teval")
   parser.add_argument("--force-calc", default=0, type=int)
   args = parser.parse_args()
   params = get_table_suit(args.name)

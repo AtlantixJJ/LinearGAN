@@ -11,6 +11,8 @@ from models.helper import *
 from lib.callback import *
 from lib.dataset import NoiseDataModule
 from models.semantic_extractor import SELearner
+from evalute import evaluate_SE, write_results, aggregate_iou
+
 
 def main(args):
   from predictors.face_segmenter import FaceSegmenter
@@ -44,6 +46,7 @@ def main(args):
 
   dm = NoiseDataModule(train_size=1024, batch_size=1)
   z = torch.randn(6, 512).cuda()
+  resolution = 512 if is_face else 256
   callbacks = [
     SEVisualizerCallback(z, interval=5 * 1024),
     TrainingEvaluationCallback(),
@@ -54,7 +57,7 @@ def main(args):
     lr=args.lr,
     loss_type=args.loss_type,
     latent_strategy=args.latent_strategy,
-    resolution=512 if is_face else 256,
+    resolution=resolution,
     save_dir=DIR)
   trainer = pl.Trainer(
     logger=logger,
@@ -66,7 +69,11 @@ def main(args):
     distributed_backend='dp')
   trainer.fit(learner, dm)
   save_semantic_extractor(SE, f"{DIR}/{args.G}_{args.SE}.pth")
-
+  num = 5000
+  mIoU, c_ious = evaluate_SE(SE, G, P,
+    resolution, num, args.latent_strategy)
+  res_path = DIR.replace(args.expr, "results/semantics/")
+  write_results(res_path, mIoU, c_ious)
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()

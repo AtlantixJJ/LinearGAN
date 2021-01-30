@@ -11,35 +11,38 @@ from lib.dataset import NoiseDataModule
 from models.semantic_extractor import SELearner
 from models.helper import *
 
+
 def G_from_SE(fpath):
   name = fpath.split("/")[-2]
   model_name = "_".join(name.split("_")[:2])
   return model_name, build_generator(model_name).net
 
 
-def eval_SE(SE_path, num, save_path, latent_strategy):
+def write_results(res_path, mIoU, c_ious):
+  with open(res_path, "w") as f:
+    c_ious = [float(i) for i in c_ious]
+    s = [str(c) for c in c_ious]
+    f.write(str(float(mIoU)) + "\n")
+    f.write(" ".join(s))
+
+
+def eval_SE_path(SE_path, num, save_path, latent_strategy):
   SE_args = SE_path.split("/")[-2] + f"_els{latent_strategy}"
-  if os.path.exists(f"{save_path}/{SE_args}_evaluation.pth"):
+  if os.path.exists(f"{save_path}/{SE_args}.txt"):
     print("=> evaluation result exists, skip.")
     return
   G_name, G = G_from_SE(SE_path)
   is_face = "celebahq" in SE_path or "ffhq" in SE_path
   P = FaceSegmenter() if is_face else SceneSegmenter(model_name=G_name)
   resolution = 512 if is_face else 256
+
   SE = load_semantic_extractor(SE_path)
   SE.cuda().eval()
-  res = evaluate_SE(SE, G, P, resolution, num, latent_strategy)
-  fpath = f"{save_path}/{SE_args}_evaluation.pth"
-  res_path = fpath.replace(".pth", ".txt")
-  torch.save(res, fpath)
-  mIoU, c_iou = aggregate_iou(res)
 
-  with open(res_path, "w") as f:
-    c_ious = [float(i) for i in c_iou]
-    s = [str(c) for c in c_ious]
-    f.write(str(float(mIoU)) + "\n")
-    f.write(" ".join(s))
-  return mIoU, c_ious
+  mIoU, c_ious = evaluate_SE(
+    SE, G, P, resolution, num, latent_strategy)
+  res_path = f"{save_path}/{SE_args}.txt"
+  write_results(res_path, mIoU, c_ious)
 
 
 def aggregate_iou(res):
@@ -69,7 +72,8 @@ def evaluate_SE(SE, G, P, resolution, num, ls='trunc-wp'):
       ignore_index=0, absent_score=-1, reduction='none')
     pixelacc = (dt == gt).sum() / float(dt.shape.numel())
     res.append([pixelacc, IoU])
-  return res
+  mIoU, c_ious = aggregate_iou(res)
+  return mIoU, c_ious
 
 
 if __name__ == "__main__":
@@ -115,5 +119,5 @@ if __name__ == "__main__":
       print(cmd)
       os.system(cmd)
 
-  if ".pth" in args.SE:
-    eval_SE(args.SE, args.num, args.out_dir, args.latent_strategy)
+  if ".pth" in args.SE: # when specified a pth file directly
+    eval_SE_path(args.SE, args.num, args.out_dir, args.latent_strategy)
