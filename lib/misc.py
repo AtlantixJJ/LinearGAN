@@ -5,6 +5,37 @@ import os
 import numpy as np
 from PIL import Image
 
+### Environment ###
+
+def set_cuda_devices(device_ids, use_cuda=True):
+  """Sets visible CUDA devices.
+
+  Example:
+
+  set_cuda_devices('0,1', True)  # Enable device 0 and 1.
+  set_cuda_devices('3', True)  # Enable device 3 only.
+  set_cuda_devices('all', True)  # Enable all devices.
+  set_cuda_devices('-1', True)  # Disable all devices.
+  set_cuda_devices('0', False)  # Disable all devices.
+
+  Args:
+    devices_ids: A string, indicating all visible devices. Separated with comma.
+      To enable all devices, set this field as `all`.
+    use_cuda: Whether to use cuda. If set as False, all devices will be
+      disabled. (default: True)
+  """
+  if not use_cuda:
+    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+    return 0
+  assert isinstance(device_ids, str)
+  if device_ids.lower() == 'all':
+    if 'CUDA_VISIBLE_DEVICES' in os.environ:
+      del os.environ['CUDA_VISIBLE_DEVICES']
+    return 8
+  os.environ['CUDA_VISIBLE_DEVICES'] = device_ids.replace(' ', '')
+  return len(device_ids.split(","))
+
+### Data I/O ###
 
 def read_ade20k_labels(fpath="figure/ade20k_labels.csv"):
   """Read label file for ADE20K dataset
@@ -55,34 +86,22 @@ def imwrite(fpath, image, format="RGB"):
   with open(os.path.join(fpath), "wb") as f:
     Image.fromarray(image.astype("uint8")).convert(format).save(f, format=ext)
 
+### Evaluation Utilities ###
 
-def set_cuda_devices(device_ids, use_cuda=True):
-  """Sets visible CUDA devices.
-
-  Example:
-
-  set_cuda_devices('0,1', True)  # Enable device 0 and 1.
-  set_cuda_devices('3', True)  # Enable device 3 only.
-  set_cuda_devices('all', True)  # Enable all devices.
-  set_cuda_devices('-1', True)  # Disable all devices.
-  set_cuda_devices('0', False)  # Disable all devices.
-
+def print_table(t):
+  """Print a table
+  
   Args:
-    devices_ids: A string, indicating all visible devices. Separated with comma.
-      To enable all devices, set this field as `all`.
-    use_cuda: Whether to use cuda. If set as False, all devices will be
-      disabled. (default: True)
+    t : A 2D numpy array or a 2D list.
   """
-  if not use_cuda:
-    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-    return 0
-  assert isinstance(device_ids, str)
-  if device_ids.lower() == 'all':
-    if 'CUDA_VISIBLE_DEVICES' in os.environ:
-      del os.environ['CUDA_VISIBLE_DEVICES']
-    return 8
-  os.environ['CUDA_VISIBLE_DEVICES'] = device_ids.replace(' ', '')
-  return len(device_ids.split(","))
+  for i in range(len(t)):
+    s = ""
+    for j in range(len(t[0])):
+      try:
+        s += f"{t[i, j]:.3f}\t"
+      except:
+        s += f"{t[i][j]:.3f}\t"
+    print(s)
 
 
 def listkey_convert(name, listkey, output=None):
@@ -106,20 +125,42 @@ def listkey_convert(name, listkey, output=None):
   return ""
 
 
-def print_table(t):
-  """Print a table
+def aggregate_iou(res):
+  """Aggregate IoU of each instance into a global mIoU and IoU.
   
   Args:
-    t : A 2D numpy array or a 2D list.
+    res : The result. Assumed to be a list. Item 1 is pixel accuracy, item 2
+          is IoU. -1 means the category is missing in both detection and GT.
+  Returns:
+    mIoU, class-wise IoU
   """
-  for i in range(len(t)):
-    s = ""
-    for j in range(len(t[0])):
-      try:
-        s += f"{t[i, j]:.3f}\t"
-      except:
-        s += f"{t[i][j]:.3f}\t"
-    print(s)
+  ic_iou = torch.stack([r[1] for r in res])
+  c_iou = torch.zeros(ic_iou.shape[1])
+  for c in range(ic_iou.shape[1]):
+    val = ic_iou[:, c]
+    val = val[val > -0.1]
+    c_iou[c] = -1 if val.shape[0] == 0 else val.mean()
+  mIoU = c_iou[c_iou > -1].mean()
+  return mIoU, c_iou
+
+
+def formal_generator_name(name):
+  """Convert the naming in code to naming in paper."""
+  if type(name) is list:
+    return [formal_generator_name(n) for n in name]
+  finds = ["stylegan", "pggan", "bedroom", "church", "celebahq", "ffhq"]
+  subs = ["StyleGAN", "PGGAN", "Bedroom", "Church", "CelebAHQ", "FFHQ"]
+  for find, sub in zip(finds, subs):
+    name = name.replace(find, sub)
+  return name
+
+
+def get_args_name(layer_weights=["softplus"],
+                  loss_types=["focal"], ls="", els=""):
+  """Format the arguments of SE into its name."""
+  for layer_weight in layer_weights:
+    for loss_type in loss_types:
+      yield f"l{loss_type}_{ls}_lw{layer_weight}_{els}"
 
 
 def str_num(n, F="%.3f"):

@@ -1,36 +1,37 @@
 import torch, sys, os, argparse
 sys.path.insert(0, ".")
-from lib.misc import listkey_convert, str_latex_table
-from lib.op import torch2numpy
 import numpy as np
+
+from lib.misc import str_latex_table, formal_generator_name, get_args_name
+from lib.op import torch2numpy
+from evaluate import read_results
 
 
 def get_table_suit(name):
   # default: full
   methods = ["LSE", "NSE-1", "NSE-2"]
-  if "concise" in name:
-    methods = ["LSE", "NSE-1", "NSE-2"]
-  
+  layer_weights = ["softplus"]
+  loss_types = ["focal"]
+
+  # Which latent strategy is the SE trained on
   if "notrunc" in name:
     ls = "lsnotrunc-mixwp"
   else:
     ls = "lstrunc-wp"
 
+  # Which latent strategy is the SE evaluated on
   if "-nteval" in name:
     els = "elsnotrunc-mixwp"
   elif "-teval" in name:
     els = "elstrunc-wp"  
-  
-  # default
-  layer_weights = ["softplus"]
-  loss_types = ["focal"]
 
   if "LSE_arch_compare" in name:
     Gs = ["stylegan2_bedroom", "stylegan_bedroom"]
     methods = ["LSE"]
+    layer_weights = ["softplus", "none"]
     loss_types = ["focal", "normal"]
 
-  elif "face" in name:
+  if "face" in name:
     Gs = ["pggan_celebahq", "stylegan_celebahq", "stylegan2_ffhq"]
   elif "bedroom" in name:
     Gs = ["pggan_bedroom", "stylegan_bedroom", "stylegan2_bedroom"]
@@ -47,33 +48,6 @@ def get_table_suit(name):
       "stylegan" : ["stylegan_celebahq", "stylegan_bedroom", "stylegan_church"],
       "stylegan2" : ["stylegan2_ffhq", "stylegan2_bedroom", "stylegan2_church"]}
   return methods, Gs, layer_weights, loss_types, ls, els
-
-
-def formal_name(name):
-  if type(name) is list:
-    return [formal_name(n) for n in name]
-  finds = ["stylegan", "pggan", "bedroom", "church", "celebahq", "ffhq"]
-  subs = ["StyleGAN", "PGGAN", "Bedroom", "Church", "CelebAHQ", "FFHQ"]
-  for find, sub in zip(finds, subs):
-    name = name.replace(find, sub)
-  return name
-
-
-def get_args_name(layer_weights=["softplus"], loss_types=["focal"], ls="", els=""):
-  for layer_weight in layer_weights:
-    for loss_type in loss_types:
-      yield f"l{loss_type}_{ls}_lw{layer_weight}_{els}"
-
-
-def aggregate_iou(res):
-  ic_iou = torch.stack([r[1] for r in res])
-  c_iou = torch.zeros(ic_iou.shape[1])
-  for c in range(ic_iou.shape[1]):
-    val = ic_iou[:, c]
-    val = val[val > -0.1]
-    c_iou[c] = -1 if val.shape[0] == 0 else val.mean()
-  mIoU = c_iou[c_iou > -1].mean()
-  return mIoU
 
 
 def max_key(dic):
@@ -104,7 +78,7 @@ def str_table_single(dic, indicate_best=True, T=0):
   idic = invert_dic(dic)
   methods = list(dic.keys())
   Gs = list(idic.keys())
-  strs = [formal_name(Gs)]
+  strs = [formal_generator_name(Gs)]
   for method in methods:
     s = [method]
     for G in Gs:
@@ -126,17 +100,17 @@ def str_table_multiple(dic, T=0):
   mulcols = len(dic[methods[0]][groups[0]].keys())
   cs = "c" * (mulcols - 1)
   latex_header = "\\multicolumn{" + str(mulcols) + "}{" + cs + "|}"
-  strs = [["Generator"] + [latex_header + "{" + formal_name(g) + "}" for g in groups]]
+  strs = [["Generator"] + [latex_header + "{" + \
+    formal_generator_name(g) + "}" for g in groups]]
   s = ["Dataset"]
   for g in groups:
     Gs = list(dic[methods[0]][g].keys()) # 2nd column name
-    s.extend(formal_name(Gs))
+    s.extend(formal_generator_name(Gs))
   strs.append(s)
   for method in methods:
     s = [method]
     for group in groups:
       for G in dic[method][group].keys():
-        #print(method, group, dic[method][group].keys())
         dic_ = {m : dic[m][group][G] if G in dic[m][group] else 0
                   for m in methods}
         best_ind, best_method, best_val = max_key(dic_)
@@ -149,27 +123,6 @@ def str_table_multiple(dic, T=0):
         s.append(item_str)
     strs.append(s)
   return strs
-
-
-def iou_from_pth(fpath):
-  if "NSE-2" in fpath:
-    fpath = fpath.replace("adam-0.01", "adam-0.001")
-  if not os.path.exists(fpath):
-    print(f"!> {fpath} not found")
-    return -1
-
-  res_path = fpath.replace(".pth", ".txt")
-  if os.path.exists(res_path):
-    with open(res_path, "r") as f:
-      res = f.readline().strip().split(" ")
-    return float(res[0])
-  
-  # pixelacc, IoU, AP, AR, mIoU, mAP, mAR, sups
-  res = torch.load(fpath, map_location='cpu')
-  mIoU = aggregate_iou(res)
-  with open(res_path, "w") as f:
-    f.write(str(float(mIoU)))
-  return mIoU
 
 
 if __name__ == "__main__":
@@ -197,12 +150,13 @@ if __name__ == "__main__":
       for G in params[1]:
         # for 2-D dictionary, this is a single-loop
         for args_name in get_args_name(*params[2:]): 
-          fpath = f"{args.dir}/{G}_{method}_{args_name}_evaluation.pth"
-          mIoU = iou_from_pth(fpath)
-          if mIoU < 0:
+          fpath = f"{args.dir}/{G}_{method}_{args_name}.txt"
+          if not os.path.exists(fpath):
+            print(f"!> {fpath} not found")
             continue
+          mIoU, c_ious = read_results(fpath)
           dic[method][G] = float(mIoU)
-          print(method, G, mIoU)
+          print(method, args_name, G, mIoU)
 
   if "all" in args.name or "other" in args.name:
     strs = str_table_multiple(dic)

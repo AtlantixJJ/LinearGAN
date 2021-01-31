@@ -8,21 +8,27 @@ args = parser.parse_args()
 
 def sr_LSE_arch():
   cmds = []
-  srcmd = "python train.py --G {G} --SE LSE --lr 0.001 --loss-type normal --layer-weight {layer_weight} --latent-strategy {latent_strategy}"
-  for G in ["stylegan2_bedroom", "stylegan_bedroom"]:
+  srcmd = "python train.py --G {G} --SE LSE --lr 0.001 --loss-type {loss_type} --layer-weight {layer_weight} --latent-strategy trunc-wp"
+  Gs = ["stylegan2_bedroom", "stylegan_bedroom", "pggan_bedroom", "stylegan2_church", "stylegan_church", "pggan_church"]
+  for G in Gs:
     for layer_weight in ["softplus", "none"]:
-      for latent_strategy in ['notrunc-mixwp', 'trunc-wp']:
+      for loss_type in ['focal', 'normal']:
         cmds.append(srcmd.format(G=G, layer_weight=layer_weight,
-          latent_strategy=latent_strategy))
+          loss_type=loss_type))
   return cmds
 
 
 def sr_NSE_arch():
   cmds = []
-  srcmd = "python train/extract_semantics.py --G {G} --optim adam-0.01 --SE {SE}"
-  for G in ["pggan_bedroom", "pggan_church", "stylegan2_church", "stylegan2_bedroom", "stylegan_church", "stylegan_bedroom"]:
-    cmds.append(srcmd.format(G=G, SE="NSE-1"))
+  srcmd = "python train.py --G {G} --SE NSE-1 --lr 0.001 --loss-type {loss_type} --layer-weight {layer_weight} --latent-strategy trunc-wp"
+  Gs = ["stylegan2_bedroom", "stylegan_bedroom", "pggan_bedroom", "stylegan2_church", "stylegan_church", "pggan_church"]
+  for G in Gs:
+    for layer_weight in ["softplus", "none"]:
+      for loss_type in ['focal', 'normal']:
+        cmds.append(srcmd.format(G=G, layer_weight=layer_weight,
+          loss_type=loss_type))
   return cmds
+
 
 
 def sr_all_method():

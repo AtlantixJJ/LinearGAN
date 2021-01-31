@@ -61,6 +61,7 @@ def main(args):
     save_dir=DIR)
   trainer = pl.Trainer(
     logger=logger,
+    checkpoint_callback=False,
     accumulate_grad_batches={0:1, 2:4, 18:64},
     max_epochs=50,
     progress_bar_refresh_rate=0 if args.slurm else 1,
@@ -71,8 +72,8 @@ def main(args):
   save_semantic_extractor(SE, f"{DIR}/{args.G}_{args.SE}.pth")
 
   res_dir = DIR.replace(args.expr, "results/semantics/")
-  num = 5000
-  mIoU, c_ious = evaluate_SE(SE, G, P,
+  num = 10000
+  mIoU, c_ious = evaluate_SE(SE, G.net, P,
     resolution, num, args.latent_strategy)
   write_results(f"{res_dir}_els{args.latent_strategy}.txt", mIoU, c_ious)
 
