@@ -260,6 +260,8 @@ class LSE(SemanticExtractor):
     return base_dic
 
   def _calc_layer_weight(self):
+    if self.lw_type == "none" or self.lw_type == "direct":
+      return self.layer_weight
     if self.lw_type == "softplus": 
       weight = torch.nn.functional.softplus(self.layer_weight)
     elif self.lw_type == "sigmoid":
@@ -334,7 +336,7 @@ class NSE1(LSE):
       _m.append(nn.Conv2d(in_dim, midim, self.ksize, padding=padding))
       _m.append(nn.ReLU(inplace=True))
 
-      for _ in range(len(self.n_layers) - 2):
+      for _ in range(self.n_layers - 2):
         _m.append(nn.Conv2d(midim, midim, self.ksize, padding=padding))
         _m.append(nn.ReLU(inplace=True))
 

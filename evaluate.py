@@ -18,11 +18,20 @@ def G_from_SE(fpath):
 
 
 def write_results(res_path, mIoU, c_ious):
+  """Write results to a txt file. Paired with read_results."""
   with open(res_path, "w") as f:
     c_ious = [float(i) for i in c_ious]
     s = [str(c) for c in c_ious]
     f.write(str(float(mIoU)) + "\n")
     f.write(" ".join(s))
+
+
+def read_results(res_path):
+  """Read results from a txt file. Paired with write_results."""
+  with open(res_path, "r") as f:
+    mIoU = float(f.readline().strip())
+    c_iou = [float(i) for i in f.readline().strip().split(" ")]
+  return mIoU, c_iou
 
 
 def eval_SE_path(SE_path, num, save_path, latent_strategy):
@@ -82,7 +91,7 @@ if __name__ == "__main__":
     help='The path to the experiment directories.')
   parser.add_argument('--out-dir', type=str, default='results/semantics/',
     help='The output directory.')
-  parser.add_argument('--num', type=int, default=5000,
+  parser.add_argument('--num', type=int, default=10000,
     help='The evaluation sample.')
   parser.add_argument('--gpu-id', default='0',
     help='Which GPU(s) to use. (default: `0`)')
