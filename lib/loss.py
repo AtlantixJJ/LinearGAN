@@ -4,6 +4,7 @@ import torch.nn.functional as F
 
 from lib import op
 
+
 def mask_cross_entropy_loss(mask, x, y): # requires more than editing need
     ce = F.cross_entropy(x, y, reduction="none")
     return (mask * ce).sum() / mask.sum()
@@ -34,15 +35,8 @@ class FocalLoss(nn.Module):
       return focal_loss
 
 
-def int2onehot(x, n):
-    z = torch.zeros(x.shape[0], n, x.shape[2], x.shape[3]).to(x.device)
-    #for i in range(n):
-    #  z[:, i:i+1][x == n] = 1
-    #return z
-    return z.scatter_(1, x, 1)
-
-
 def segloss(segs, label, loss_fn):
+  """The final version of loss."""
   segloss = []
   size = label.size(3)
   for seg in segs:
@@ -52,6 +46,7 @@ def segloss(segs, label, loss_fn):
 
 
 def segloss_bce(segs, label, loss_fn_layer, loss_fn_final):
+  """Use BCE for each layer. It is slow and CPU intensive."""
   N = len(segs[0])
   seglosses = []
   for cat_id in range(label.shape[0]):
@@ -68,34 +63,3 @@ def segloss_bce(segs, label, loss_fn_layer, loss_fn_final):
       else op.bu(final, label.size(3)), label[cat_id]))
     seglosses.append(segloss)
   return seglosses
-
-
-def perceptual_loss_generator(generator, perceptron, x, mask, wp):
-  # Reconstruction loss.
-  x_rec = generator.synthesis(wp)
-  loss_pix = (mask * (x - x_rec) ** 2).sum(dim=[1, 2, 3]) \
-    / mask.sum(dim=[1, 2, 3])
-
-  # Perceptual loss.
-  x_feat = perceptron(x)
-  x_rec_feat = perceptron(x_rec)
-  smask = F.interpolate(mask, size=x_feat.shape[2:], mode="bilinear")
-  loss_feat = (smask * (x_feat - x_rec_feat) ** 2).sum(dim=[1, 2, 3]) \
-    / smask.sum(dim=[1, 2, 3])
-  #print(loss_pix.shape, loss_feat.shape)
-  return loss_pix + loss_feat * 5e-5
-
-
-def perceptual_loss(perceptron, x_rec, x, mask):
-  # Reconstruction loss.
-  loss_pix = (mask * (x - x_rec) ** 2).sum(dim=[1, 2, 3]) \
-    / mask.sum(dim=[1, 2, 3])
-
-  # Perceptual loss.
-  x_feat = perceptron(x)
-  x_rec_feat = perceptron(x_rec)
-  smask = F.interpolate(mask, size=x_feat.shape[2:], mode="bilinear")
-  loss_feat = (smask * (x_feat - x_rec_feat) ** 2).sum(dim=[1, 2, 3]) \
-    / smask.sum(dim=[1, 2, 3])
-  #print(loss_pix.shape, loss_feat.shape)
-  return loss_pix + loss_feat * 5e-5

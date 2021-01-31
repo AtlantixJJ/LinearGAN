@@ -6,6 +6,19 @@ import numpy as np
 import math
 
 
+def lerp(a, b, x, y, i):
+  """
+  Args:
+    input from [a, b], output to [x, y], current position i
+  """
+  return (i - a) / (b - a) * (y - x) + x
+  
+
+def int2onehot(x, n):
+    z = torch.zeros(x.shape[0], n, x.shape[2], x.shape[3]).to(x.device)
+    return z.scatter_(1, x, 1)
+
+
 def gaussian_func(x, mean, std):
   coef = 1 / math.sqrt(2 * math.pi) / std
   vals = np.exp(- (x - mean) ** 2 / 2 / std / std)
@@ -34,10 +47,15 @@ def mixwp_sample(G, N):
   return torch.randn(N, 512).cuda() # hardcode
 
 
-def _generate_image(G, wp):
+def _generate_image(G, wp, generate_feature=False):
   if hasattr(G, "synthesis"):
-    return G.synthesis(wp)
-  return G(wp)
+    return G.synthesis(wp, generate_feature=generate_feature)
+  return G(wp, generate_feature=generate_feature)
+
+
+def sample_image_feature(G, N=1):
+  wp = mixwp_sample(G, N)
+  return _generate_image(G, wp, generate_feature=True)
 
 
 def generate_images(G, wp, size=256, split=True):

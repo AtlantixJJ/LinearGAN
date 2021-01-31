@@ -1,0 +1,324 @@
+@charset "utf-8";
+.box {
+  border: 2px solid black;
+}
+.title {
+  text-align: center;
+  font-size: 44pt;
+  font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva,
+    Verdana, sans-serif;
+  color: rgb(179, 126, 54);
+}
+.dropdown {
+  display: inline-block;
+  line-height: 1;
+}
+.option-label {
+  font-weight: bold;
+  font-size: 18pt;
+  margin: 0;
+}
+.dropdown-menu {
+  border: none;
+  border-radius: 0;
+  box-shadow: 1px 1px 5px 0 rgba(0, 0, 0, 0.2);
+}
+
+.width-btn,
+.width-btn:focus {
+  height: 30px;
+  width: 30px;
+  border: none;
+  outline: none;
+  border-radius: 15px;
+  background-color: #999;
+  cursor: pointer;
+  padding: 0;
+}
+.width-label {
+  color: white;
+  font-size: 15pt;
+  font-weight: lighter;
+  text-align: center;
+}
+.width-menu {
+  margin-left: 35px;
+  margin-top: -116px;
+  min-width: 100px;
+  padding: 10px;
+  box-shadow: none;
+  background: transparent;
+}
+.width-panel {
+  height: 200px;
+  width:200px;
+  display: flex;
+  background: transparent;
+}
+#slider {
+  border: none;
+  width: 10px;
+  box-shadow: 0px 0px 8px 2px rgba(0, 0, 0, 0.2);
+}
+#slider .noUi-connect {
+  background: rgb(245, 166, 35);
+  width:10px;
+}
+#slider .noUi-handle {
+  margin-left: -2px;
+  background-color: rgb(245, 200, 85);
+  box-shadow: 2px 2px 8px 0px rgba(0, 0, 0, 0.2);
+  width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  border: none;
+  outline: none;
+  cursor: pointer;
+}
+#slider .noUi-handle:active {
+  margin-left: -5px;
+  margin-top: -3px;
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+  transition: width 0.15s, height 0.15s, margin-left 0.15s, margin-top 0.15s, border-radius 0.15s;
+}
+.noUi-vertical .noUi-handle:after, .noUi-vertical .noUi-handle:before {
+  display: none;
+}
+
+.color-btn,
+.color-btn:focus {
+  background-color: transparent;
+  border: solid 2px #999;
+  border-radius: 15px;
+  outline: none;
+  padding: 0;
+  cursor: pointer;
+}
+.color-menu {
+  margin-left: -2px;
+  width: 164px;
+  min-width: 164px;
+  padding: 4px;
+}
+.color-menu li {
+  float: left;
+}
+.color-block {
+  height: 20px;
+  width: 20px;
+  border-radius: 10px;
+  background: #000;
+  cursor: pointer;
+  margin: 0 auto;
+  margin: 3px;
+}
+.color-block:hover,
+.color-btn:hover .color-block {
+  box-shadow: 0px 0px 8px 2px rgba(0, 0, 0, 0.2) inset;
+}
+.semantic-menu {
+  margin-left: -2px;
+  width: 264px;
+  min-width: 264px;
+  padding: 4px;
+}
+.semantic-block {
+  float: left;
+  font-size: large;
+  width: 200px;
+  height: 20px;
+  cursor: pointer;
+}
+.semantic-block:hover,
+.semantic-btn:hover .semantic-block {
+  font-weight: bold;
+}
+.model-btn,
+.model-btn:focus {
+  background-color: transparent;
+  border: none;
+  outline: none;
+  border-radius: 0;
+  color: #666;
+  font-size: 15pt;
+  font-weight: lighter;
+  padding: 10px;
+  cursor: pointer;
+}
+.model-btn:hover {
+  background-color: #eee;
+}
+.model-btn:active {
+  background-color: #ccc;
+}
+.model-menu {
+  padding: 0;
+  width: 300px;
+  min-width: 300px;
+}
+.model-item {
+  color: #666;
+  font-size: 15pt;
+  font-weight: lighter;
+  padding: 10px;
+  cursor: pointer;
+  border-bottom: solid 1px #ccc;
+}
+.model-menu li:last-child .model-item {
+  border: none;
+}
+.model-item:active {
+  color: black;
+  background-color: #eee;
+}
+.caret {
+  display: inline-block;
+  width: 12px;
+  height: 8px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-image: url('../img/ic_caret.png');
+}
+
+.image {
+  display: block;
+  margin-left: auto;
+  margin-top: auto;
+  margin-bottom: auto;
+  margin-right: auto;
+}
+#canvas {
+  background-size: contain;
+}
+#label-canvas {
+  background-size: contain;
+}
+#start {
+  height: 40px;
+  width: 100px;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  top: 50%;
+  margin-left: -50px;
+  margin-top: -20px;
+}
+.canvas-shape {
+  height: 400px;
+}
+.canvas-background {
+  position: relative;
+  background-color: rgb(255, 242, 225);
+  border-radius: 10px;
+}
+.option-btn,
+.option-btn:focus {
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  outline: none;
+  width: 100px;
+}
+.btn-icon {
+  height: 30px;
+  width: 30px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  margin: 0 auto 10px auto;
+}
+.btn-text {
+  color: #666;
+  font-size: 11pt;
+  font-weight: lighter;
+  text-align: center;
+}
+.option-btn:hover .btn-text,
+.btn-text:hover {
+  color: rgb(245, 166, 35);
+}
+.stroke-icon {
+  background-image: url('../img/ic_undisplay.png');
+}
+.option-btn.active .stroke-icon {
+  background-image: url('../img/ic_display.png');
+}
+.option-btn:hover .stroke-icon {
+  background-image: url('../img/ic_undisplay_hover.png');
+}
+.option-btn.active:hover .stroke-icon {
+  background-image: url('../img/ic_display_hover.png');
+}
+.regen-icon {
+  background-image: url('../img/ic_regen.png');
+}
+.option-btn:hover .regen-icon {
+  background-image: url('../img/ic_regen_hover.png');
+}
+.clear-icon {
+  background-image: url('../img/ic_clear.png');
+}
+.option-btn:hover .clear-icon {
+  background-image: url('../img/ic_clear_hover.png');
+}
+.option-btn:disabled {
+  opacity: 0.7;
+}
+.submit-btn {
+  height: 60px;
+  background-color: rgb(245, 166, 35);
+  border-radius: 30px;
+  font-size: 18pt;
+  font-weight: bold;
+  margin: 0 auto;
+}
+.submit-btn:hover {
+  background-color: rgb(255, 235, 88);
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.19);
+  -webkit-transition: background-color 0.3s, color 0.15s, box-shadow 0.3s, opacity 0.3s;
+  transition: background-color 0.3s, color 0.15s, box-shadow 0.3s, opacity 0.3s;
+}
+
+.download-btn,
+.download-btn:focus {
+  cursor: pointer;
+  border: none;
+  outline: none;
+  background-color: transparent;
+}
+
+/*
+#upload-form {
+  width: 300px;
+  margin-top: 10px;
+}
+#upload {
+  margin: 0;
+}
+.custom-file,
+.custom-file-control,
+.custom-file-input {
+  height: 36px;
+  line-height: 1.2;
+}
+.custom-file-control {
+  margin-right: 5px;
+}
+.custom-file-input {
+  cursor: pointer;
+  width: 100px;
+  min-width: 0;
+}
+.custom-file-control::before {
+  height: 36px;
+  line-height: 1.2;
+  content: '浏览';
+}
+.custom-file-control::after {
+  height: 36px;
+  line-height: 1.2;
+  content: '选择图片...';
+} */
