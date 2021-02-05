@@ -13,7 +13,8 @@ from base64 import b64encode, b64decode
 from datetime import datetime
 
 
-INDEX_FILE = "index_en.html"
+EDIT_INDEX = "index_edit.html"
+TRAIN_INDEX = "index_train.html"
 model_manager = api.ModelAPI("home/static/config.json")
 editor = api.ImageGenerationAPI(model_manager)
 trainer = api.TrainAPI(model_manager)
@@ -54,12 +55,12 @@ def restore_from_session(session):
 
 
 def index(request):
-  res = render(request, INDEX_FILE, base_dic)
+  res = render(request, EDIT_INDEX, base_dic)
   res.set_cookie('last_visit', datetime.now())
   return res
 
 def train(request):
-  res = render(request, "train.html", base_dic)
+  res = render(request, TRAIN_INDEX, base_dic)
   res.set_cookie('last_visit', datetime.now())
   return res
 

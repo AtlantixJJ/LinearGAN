@@ -62,10 +62,8 @@ class SEFewShotLearner(pl.LightningModule):
     feature, label = self.feature, self.label
     idx = batch_idx % label.shape[1]
     seg = self.model([f[idx:idx+1].cuda() for f in feature],
-      size=self.resolution) 
-    segloss = loss.segloss_final(seg, label[:, idx:idx+1],
-      loss_fn_layer=self.loss_fn_layer,
-      loss_fn_final=self.loss_fn_final)
+      size=self.resolution)
+    segloss = self.loss_fn_final(seg, label[:, idx:idx+1])
     total_loss = 0
     for i in range(len(segloss)):
       s = 0
