@@ -36,8 +36,8 @@ def enumerate_args(prev=[], i=0, groups=[]):
 
 def LSE_table():
   Gs = ["SB", "S2B"]
-  methods = ["LSE"]
-  loss_types = ["N"] # "F"
+  methods = ["NSE-1"]
+  loss_types = ["N", "F"]
   lrs = ["0.001"] #["0.01", "0.001"]
   lw_types = ["SP", "None"]
   ls = ["Trunc"]#["Tmixed", "Ttrunc"]
@@ -48,8 +48,7 @@ def LSE_table():
   col_names = enumerate_names(groups=col_groups)
 
   Gs = ["stylegan_bedroom", "stylegan2_bedroom"]
-  methods = ["LSE"]
-  loss_types = ["lnormal"] # "lfocal"
+  loss_types = ["lnormal", "lfocal"]
   lrs = ["lr0.001"] #["0.01", "0.001"]
   lw_types = ["lwsoftplus", "lwnone"]
   ls = ["lstrunc-wp"] #["lsnotrunc-mixwp", "lstrunc-wp"]

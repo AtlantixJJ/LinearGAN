@@ -30,7 +30,6 @@ def sr_NSE_arch():
   return cmds
 
 
-
 def sr_all_method():
   cmds = []
   srcmd = "python train.py --G {G} --SE {SE}"
@@ -38,8 +37,6 @@ def sr_all_method():
   for G in Gs:
     for SE in ["LSE", "NSE-1", "NSE-2"]:
       cmd = srcmd.format(G=G, SE=SE)
-      if "NSE-2" in SE:
-        cmd = cmd + " --optim adam-0.001"
       cmds.append(cmd)
   return cmds
 

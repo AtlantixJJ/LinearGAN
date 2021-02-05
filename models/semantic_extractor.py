@@ -184,7 +184,7 @@ class SemanticExtractor(nn.Module):
   Base class for semantic extractors
   """
 
-  def __init__(self, n_class, dims, layers, type=""):
+  def __init__(self, n_class, dims, layers, type="", **kwargs):
     """
     Args:
       n_class : The number of semantic categories.

@@ -38,19 +38,19 @@ def main(args):
       layers=layers)
   SE.cuda().train()
 
-  if hasattr(SE, "layer_weight"):
-    print("=> Layer weight")
-    weight = SE._calc_layer_weight()
-    s = " ".join([f"{w:.2f}" for w in weight])
-    print(f"=> Layer weight: {s}")
-
   dm = NoiseDataModule(train_size=1024, batch_size=1)
   z = torch.randn(6, 512).cuda()
   resolution = 512 if is_face else 256
   callbacks = [
     SEVisualizerCallback(z, interval=5 * 1024),
-    TrainingEvaluationCallback(),
-    WeightVisualizerCallback()]
+    TrainingEvaluationCallback()]
+
+  if hasattr(SE, "layer_weight"):
+    print("=> Layer weight")
+    weight = SE._calc_layer_weight()
+    s = " ".join([f"{w:.2f}" for w in weight])
+    print(f"=> Layer weight: {s}")
+    callbacks.append(WeightVisualizerCallback())
 
   logger = pl_logger.TensorBoardLogger(DIR)
   learner = SELearner(model=SE, G=G.net, P=P,
