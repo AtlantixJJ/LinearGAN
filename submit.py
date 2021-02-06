@@ -54,7 +54,7 @@ def sr_all_method_face():
 
 def sr_all_method_other():
   cmds = []
-  srcmd = "python train/extract_semantics.py --G {G} --SE {SE}"
+  srcmd = "python train/extract_semantics.py --G {G} --SE {SE} --full-label"
   Gs = "stylegan2_bedroom,stylegan2_church,stylegan_bedroom,stylegan_church,pggan_bedroom,pggan_church".split(",")
   for SE in ["LSE", "NSE-1", "NSE-2"]:
     for G in Gs:

@@ -21,7 +21,13 @@ def main(args):
   DIR = f"{args.expr}/{args.G}_{args.SE}_l{args.loss_type}_ls{args.latent_strategy}_lw{args.layer_weight}_lr{args.lr}"
   G = build_generator(args.G)
   is_face = "celebahq" in args.G or "ffhq" in args.G
-  P = FaceSegmenter() if is_face else SceneSegmenter(model_name=args.G)
+  if is_face:
+    P = FaceSegmenter()
+  else:
+    if args.full_label:
+      P = SceneSegmenter()
+    else:
+      P = SceneSegmenter(model_name=args.G)
   print(f"=> Segmenter has {P.num_categories} classes")
 
   if len(args.reload) > 1:
@@ -92,6 +98,8 @@ if __name__ == "__main__":
     help='The model type of semantic extractor')
   parser.add_argument('--loss-type', type=str, default='normal',
     help='focal: use Focal loss. normal: use CE loss.')
+  parser.add_argument('--full-label', type=int, default=0,
+    help='Default: 0, use selected label. 1: use full label.')
   # Training setting
   parser.add_argument('--reload', type=str, default='',
     help='The path to saved file of semantic extractor.')

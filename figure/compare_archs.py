@@ -117,7 +117,7 @@ def str_table_single(dic):
 def get_table(args):
   dic = {}
   count = 0
-  for row_name, col_name, arg in LSE_table():
+  for row_name, col_name, arg in all_methods():
     if row_name not in dic:
       dic[row_name] = {}
     fpath = f"{args.dir}/{arg}.txt"
@@ -137,7 +137,7 @@ def get_table(args):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument("--dir", default="results/semantics/", help="")
-  parser.add_argument("--name", default="LSE_arch_compare")
+  parser.add_argument("--name", default="all")
   parser.add_argument("--force-calc", default=0, type=int)
   args = parser.parse_args()
 

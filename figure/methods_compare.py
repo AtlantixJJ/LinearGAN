@@ -116,13 +116,14 @@ if __name__ == "__main__":
   parser.add_argument("--force-calc", default=0, type=int)
   args = parser.parse_args()
   params = get_table_suit(args.name)
+  print(params)
   dic = {}
   for G_group in params[0]:
     if type(G_group) is dict:
-      for dataset, Gs in G_group.items():
-        dic[dataset] = {}
+      for group_name, Gs in G_group.items():
+        dic[group_name] = {}
         for G in Gs:
-          dic[dataset][G] = {}
+          dic[group_name][G] = {}
           for args_name in get_args_name(*params[1:]):
             method = args_name[0]
             args_name = "_".join(args_name)
