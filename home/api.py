@@ -7,7 +7,8 @@ import numpy as np
 import torch
 from home.utils import *
 from models.helper import *
-from lib.op import sample_image_feature
+from lib.op import sample_image_feature, torch2image, torch2numpy
+from lib.visualizer import segviz_numpy
 from models.semantic_extractor import LSE, SEFewShotLearner
 import threading
 
@@ -105,6 +106,8 @@ class TrainAPI(object):
     image, feature = G.synthesis(wp, generate_feature=True)
     z_s = to_serialized_tensor(z)
     image = torch2image(image).astype("uint8")[0]
+    #empty_label_viz = np.zeros_like(image)
+    #empty_label_viz.fill(255)
     print("=> [TrainerAPI] done")
     return image, z_s
 
@@ -195,7 +198,7 @@ class ImageGenerationAPI(object):
     label_stroke = t.unsqueeze(0).cuda()
     label_mask = preprocess_mask(label_mask, size).squeeze(1).cuda()
     image, feature = G.synthesis(wp.cuda(), generate_feature=True)
-    label = SE(feature, last_only=True)[0][0][0].argmax(0)
+    label = SE(feature)[0][0].argmax(0)
     image = torch2image(image)[0]
     label_viz = segviz_numpy(torch2numpy(label))
     z = np.float32(z.detach().cpu()).tobytes()
@@ -204,12 +207,13 @@ class ImageGenerationAPI(object):
     return image, label_viz, z
 
   def generate_new_image(self, model_name):
-    G = self.models[model_name]
+    G = self.Gs[model_name]
     z = torch.randn(1, 512).cuda()
     wp = G.mapping(z).unsqueeze(1).repeat(1, G.num_layers, 1)
     image, feature = G.synthesis(wp, generate_feature=True)
-    seg = self.SE[model_name](feature, last_only=True)[0][0]
+    seg = self.SE[model_name](feature)[0]
     label = seg[0].argmax(0)
+    print(label.shape)
     image = torch2image(image).astype("uint8")[0]
     label_viz = segviz_numpy(torch2numpy(label))
     z = np.float32(z.cpu()).tobytes()

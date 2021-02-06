@@ -44,10 +44,8 @@ def response_image(image):
   return HttpResponse(json)
 
 
-def save_to_session(session, z_s, model_s=None):
+def save_to_session(session, z_s):
   session["z_s"] = z_s
-  if model_s is not None:
-    session["model_s"] = model_s
 
 def restore_from_session(session):
   latent = session["z_s"]
@@ -109,8 +107,8 @@ def generate_new_image(request):
         print("=> No model name %s" % model)
         return HttpResponse('{}')
 
-      image, feature, z = editor.generate_new_image(model)
-      save_to_session(sess, feature, z, model)
+      image, z = editor.generate_new_image(model)
+      save_to_session(sess, z)
       return response(image, label)
     except Exception:
       print("!> Exception:")

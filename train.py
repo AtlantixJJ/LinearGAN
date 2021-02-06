@@ -90,7 +90,7 @@ if __name__ == "__main__":
     help='The model type of generator')
   parser.add_argument('--SE', type=str, default='LSE',
     help='The model type of semantic extractor')
-  parser.add_argument('--loss-type', type=str, default='focal',
+  parser.add_argument('--loss-type', type=str, default='normal',
     help='focal: use Focal loss. normal: use CE loss.')
   # Training setting
   parser.add_argument('--reload', type=str, default='',

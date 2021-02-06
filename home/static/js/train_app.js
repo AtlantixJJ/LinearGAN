@@ -75,12 +75,12 @@ function setImage(data) {
     $('#stroke').removeClass('disabled');
     $('#option-buttons').prop('hidden', false);
   }
-  canvas_auto_resize();
   image = data.img;
   $('#image').attr('src', image);
   $('#canvas').css('background-image', 'url(' + image + ')');
   annotator.setHasImage(true);
   spinner.spin();
+  canvas_auto_resize();
 }
 
 function setLoading(isLoading) {
