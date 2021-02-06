@@ -80,16 +80,18 @@ class TrainingEvaluationCallback(pl.Callback):
     self.count += 1
     tensorboard = trainer.logger.experiment
     table = pl_module.train_evaluation
-    labels = pl_module.P.labels
     pixelacc = torch.Tensor([entry[0] for entry in table])
     pixelacc = pixelacc.mean()
     IoU = torch.stack([entry[1] for entry in table], 1) # IoU: (C, N)
     c_IoU = torch.zeros((IoU.shape[0]))
+
     for i in range(IoU.shape[0]):
       v = IoU[IoU > -0.1]
       c_IoU[i] = -1 if len(v) == 0 else v.mean()
-      tensorboard.add_scalar(f'val/{labels[i]}_IoU',
-        c_IoU[i], self.count)
+      if hasattr(pl_module.P, "labels"):
+        labels = pl_module.P.labels
+        tensorboard.add_scalar(f'val/{labels[i]}_IoU',
+          c_IoU[i], self.count)
     mIoU = c_IoU[c_IoU > -1].mean()
     tensorboard.add_scalar('val/mIoU', mIoU, self.count)
     tensorboard.add_scalar('val/pixelacc', pixelacc, self.count)
