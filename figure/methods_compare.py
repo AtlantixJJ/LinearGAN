@@ -2,7 +2,7 @@ import torch, sys, os, argparse
 sys.path.insert(0, ".")
 import numpy as np
 
-from lib.misc import str_latex_table, formal_generator_name, get_args_name
+from lib.misc import *
 from lib.op import torch2numpy
 from evaluate import read_results
 
@@ -13,11 +13,13 @@ def get_table_suit(name):
   layer_weights = ["softplus"]
   loss_types = ["focal"]
 
-  # Which latent strategy is the SE trained on
   if "notrunc" in name:
     ls = "lsnotrunc-mixwp"
   else:
     ls = "lstrunc-wp"
+
+  layer_weights = ["lwsoftplus"]
+  lrs = ["lr0.001"]
 
   # Which latent strategy is the SE evaluated on
   if "-nteval" in name:
@@ -28,8 +30,6 @@ def get_table_suit(name):
   if "LSE_arch_compare" in name:
     Gs = ["stylegan2_bedroom", "stylegan_bedroom"]
     methods = ["LSE"]
-    layer_weights = ["softplus", "none"]
-    loss_types = ["focal", "normal"]
 
   if "face" in name:
     Gs = ["pggan_celebahq", "stylegan_celebahq", "stylegan2_ffhq"]
@@ -47,23 +47,7 @@ def get_table_suit(name):
       "pggan" : ["pggan_celebahq", "pggan_bedroom", "pggan_church"],
       "stylegan" : ["stylegan_celebahq", "stylegan_bedroom", "stylegan_church"],
       "stylegan2" : ["stylegan2_ffhq", "stylegan2_bedroom", "stylegan2_church"]}
-  return methods, Gs, layer_weights, loss_types, ls, els
-
-
-def max_key(dic):
-  keys = list(dic.keys())
-  ind = np.argmax([dic[k] for k in keys])
-  return ind, keys[ind], dic[keys[ind]]
-
-
-def invert_dic(dic):
-  idic = {}
-  for k1 in dic.keys():
-    for k2 in dic[k1].keys():
-      if k2 not in idic:
-        idic[k2] = {}
-      idic[k2][k1] = dic[k1][k2]
-  return idic
+  return Gs, methods, loss_types, ls, layer_weights, lrs, els
 
 
 def str_table_single(dic, indicate_best=True, T=0):
@@ -128,39 +112,28 @@ def str_table_multiple(dic, T=0):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument("--dir", default="results/semantics/", help="")
-  parser.add_argument("--name", default="LSE_arch_compare-trunc-teval")
+  parser.add_argument("--name", default="all-trunc-teval")
   parser.add_argument("--force-calc", default=0, type=int)
   args = parser.parse_args()
   params = get_table_suit(args.name)
   dic = {}
-  for method in params[0]:
-    dic[method] = {}
-    if type(params[1]) is dict:
-      for group, Gs in params[1].items():
-        dic[method][group] = {}
+  for G_group in params[0]:
+    if type(G_group) is dict:
+      for dataset, Gs in G_group.items():
+        dic[dataset] = {}
         for G in Gs:
-          for args_name in get_args_name(*params[2:]): 
-            fpath = f"{args.dir}/{G}_{method}_{args_name}_evaluation.pth"
-            mIoU = iou_from_pth(fpath)
+          dic[dataset][G] = {}
+          for args_name in get_args_name(*params[1:]):
+            method = args_name[0]
+            args_name = "_".join(args_name)
+            fpath = f"{args.dir}/{G}_{args_name}.txt"
+            print(fpath)
+            mIoU = read_results(fpath)
             if mIoU < 0:
               continue
-            show_name = G.split("_")[1]
-            dic[method][group][show_name] = float(mIoU)
-    else:
-      for G in params[1]:
-        # for 2-D dictionary, this is a single-loop
-        for args_name in get_args_name(*params[2:]): 
-          fpath = f"{args.dir}/{G}_{method}_{args_name}.txt"
-          if not os.path.exists(fpath):
-            print(f"!> {fpath} not found")
-            continue
-          mIoU, c_ious = read_results(fpath)
-          dic[method][G] = float(mIoU)
-          print(method, args_name, G, mIoU)
+            dic[dataset][G][method] = float(mIoU)
 
-  if "all" in args.name or "other" in args.name:
-    strs = str_table_multiple(dic)
-  else:
-    strs = str_table_single(dic)
+  strs = str_table_multiple(dic)
+
   with open(f"results/tex/{args.name}.tex", "w") as f:
     f.write(str_latex_table(strs))

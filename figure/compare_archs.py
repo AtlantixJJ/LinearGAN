@@ -34,6 +34,43 @@ def enumerate_args(prev=[], i=0, groups=[]):
   return res
 
 
+def all_methods():
+  FGs = [
+    "CelebAHQ", "CelebAHQ", "FFHQ",
+    "Bedroom", "Bedroom", "Bedroom",
+    "Church", "Church", "Church"]
+  methods = ["LSE", "NSE-1", "NSE-2"]
+  loss_types = ["F"]
+  lrs = ["0.001"]
+  lw_types = ["SP"]
+  ls = ["Trunc"]#["Tmixed", "Ttrunc"]
+  els = ["Etrunc"]#["Emixed", "Etrunc"]
+  row_groups = [FGs, methods, loss_types, ls]
+  col_groups = [lw_types, lrs, els]
+  row_names = enumerate_names(groups=row_groups)
+  col_names = enumerate_names(groups=col_groups)
+
+  Gs = [
+    "pggan_celebahq", "stylegan_celebahq", "stylegan2_ffhq",
+    "pggan_bedroom", "stylegan_bedroom", "stylegan2_bedroom",
+    "pggan_church", "stylegan_church", "stylegan2_church"]
+  loss_types = ["lfocal"]
+  lrs = ["lr0.001"]
+  lw_types = ["lwsoftplus"]#, "lwnone"]
+  ls = ["lstrunc-wp"] #["lsnotrunc-mixwp", "lstrunc-wp"]
+  els = ["elstrunc-wp"] #["elsnotrunc-mixwp", "elstrunc-wp"]
+  row_groups = [Gs, methods, loss_types, ls]
+  col_groups = [lw_types, lrs, els]
+  row_args = enumerate_args(groups=row_groups)
+  col_args = enumerate_args(groups=col_groups)
+  for row_name, row_arg in zip(row_names, row_args):
+    for col_name, col_arg in zip(col_names, col_args):
+      row = "-".join(row_name)
+      col = "-".join(col_name)
+      arg = "_".join(row_arg + col_arg)
+      yield row, col, arg #row_arg, col_arg
+
+
 def LSE_table():
   Gs = ["SB", "S2B"]
   methods = ["NSE-1"]
@@ -65,22 +102,6 @@ def LSE_table():
       yield row, col, arg #row_arg, col_arg
 
 
-def max_key(dic):
-  keys = list(dic.keys())
-  ind = np.argmax([dic[k] for k in keys])
-  return ind, keys[ind], dic[keys[ind]]
-
-
-def invert_dic(dic):
-  idic = {}
-  for k1 in dic.keys():
-    for k2 in dic[k1].keys():
-      if k2 not in idic:
-        idic[k2] = {}
-      idic[k2][k1] = dic[k1][k2]
-  return idic
-
-
 def str_table_single(dic):
   strs = []
   for row_name in dic.keys():
@@ -89,37 +110,6 @@ def str_table_single(dic):
     s = [row_name]
     for col_name in dic[row_name].keys():
       s.append(f"{dic[row_name][col_name]*100:.2f}")
-    strs.append(s)
-  return strs
-
-
-def str_table_multiple(dic, T=0):
-  methods = list(dic.keys()) # row names
-  groups = list(dic[methods[0]].keys()) # 1st column name
-  mulcols = len(dic[methods[0]][groups[0]].keys())
-  cs = "c" * (mulcols - 1)
-  latex_header = "\\multicolumn{" + str(mulcols) + "}{" + cs + "|}"
-  strs = [["Generator"] + [latex_header + "{" + \
-    formal_generator_name(g) + "}" for g in groups]]
-  s = ["Dataset"]
-  for g in groups:
-    Gs = list(dic[methods[0]][g].keys()) # 2nd column name
-    s.extend(formal_generator_name(Gs))
-  strs.append(s)
-  for method in methods:
-    s = [method]
-    for group in groups:
-      for G in dic[method][group].keys():
-        dic_ = {m : dic[m][group][G] if G in dic[m][group] else 0
-                  for m in methods}
-        best_ind, best_method, best_val = max_key(dic_)
-        acc = f"{dic[method][group][G] * 100:.1f}\\%"
-        comp = (dic[method][group][G] - best_val) / best_val * 100
-        if best_method == method:
-          item_str = "\\textbf{" + acc + "}"
-        else:
-          item_str = f"{acc} ({comp:.1f}\\%)"
-        s.append(item_str)
     strs.append(s)
   return strs
 

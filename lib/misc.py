@@ -88,6 +88,23 @@ def imwrite(fpath, image, format="RGB"):
 
 ### Evaluation Utilities ###
 
+
+def invert_dic(dic):
+  idic = {}
+  for k1 in dic.keys():
+    for k2 in dic[k1].keys():
+      if k2 not in idic:
+        idic[k2] = {}
+      idic[k2][k1] = dic[k1][k2]
+  return idic
+
+
+def max_key(dic):
+  keys = list(dic.keys())
+  ind = np.argmax([dic[k] for k in keys])
+  return ind, keys[ind], dic[keys[ind]]
+  
+
 def print_table(t):
   """Print a table
   
