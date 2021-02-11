@@ -2,36 +2,9 @@ import torch, sys, os, argparse
 sys.path.insert(0, ".")
 import numpy as np
 
-from lib.misc import str_latex_table, formal_generator_name, get_args_name
+from lib.misc import *
 from lib.op import torch2numpy
 from evaluate import read_results
-
-
-def enumerate_names(prev=[], i=0, groups=[]):
-  res = []
-  for key in groups[i]:
-    if len(groups[i]) > 1:
-      cur = prev + [key]
-    else:
-      cur = prev
-
-    if i < len(groups) - 1:
-      t = enumerate_names(cur, i + 1, groups)
-      res.extend(t)
-    else:
-      res.append(cur)
-  return res
-
-
-def enumerate_args(prev=[], i=0, groups=[]):
-  res = []
-  for key in groups[i]:
-    if i < len(groups) - 1:
-      t = enumerate_args(prev + [key], i + 1, groups)
-      res.extend(t)
-    else:
-      res.append(prev + [key])
-  return res
 
 
 def all_methods():
@@ -102,21 +75,8 @@ def LSE_table():
       yield row, col, arg #row_arg, col_arg
 
 
-def str_table_single(dic):
-  strs = []
-  for row_name in dic.keys():
-    if len(strs) == 0: # table header
-      strs.append([] + list(dic[row_name].keys()))
-    s = [row_name]
-    for col_name in dic[row_name].keys():
-      s.append(f"{dic[row_name][col_name]*100:.2f}")
-    strs.append(s)
-  return strs
-
-
 def get_table(args):
   dic = {}
-  count = 0
   for row_name, col_name, arg in all_methods():
     if row_name not in dic:
       dic[row_name] = {}
@@ -127,7 +87,6 @@ def get_table(args):
     else:
       mIoU, cIoUs = read_results(fpath)
       dic[row_name][col_name] = mIoU
-      count += 1
   
   strs = str_table_single(dic)
   with open(f"results/tex/{args.name}.tex", "w") as f:

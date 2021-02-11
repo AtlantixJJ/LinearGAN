@@ -7,6 +7,7 @@ from PIL import Image
 
 ### Environment ###
 
+
 def set_cuda_devices(device_ids, use_cuda=True):
   """Sets visible CUDA devices.
 
@@ -35,7 +36,9 @@ def set_cuda_devices(device_ids, use_cuda=True):
   os.environ['CUDA_VISIBLE_DEVICES'] = device_ids.replace(' ', '')
   return len(device_ids.split(","))
 
+
 ### Data I/O ###
+
 
 def read_ade20k_labels(fpath="figure/ade20k_labels.csv"):
   """Read label file for ADE20K dataset
@@ -85,6 +88,7 @@ def imwrite(fpath, image, format="RGB"):
     ext = "PNG"
   with open(os.path.join(fpath), "wb") as f:
     Image.fromarray(image.astype("uint8")).convert(format).save(f, format=ext)
+
 
 ### Evaluation Utilities ###
 
@@ -172,6 +176,34 @@ def formal_generator_name(name):
   return name
 
 
+
+def enumerate_names(prev=[], i=0, groups=[]):
+  res = []
+  for key in groups[i]:
+    if len(groups[i]) > 1:
+      cur = prev + [key]
+    else:
+      cur = prev
+
+    if i < len(groups) - 1:
+      t = enumerate_names(cur, i + 1, groups)
+      res.extend(t)
+    else:
+      res.append(cur)
+  return res
+
+
+def enumerate_args(prev=[], i=0, groups=[]):
+  res = []
+  for key in groups[i]:
+    if i < len(groups) - 1:
+      t = enumerate_args(prev + [key], i + 1, groups)
+      res.extend(t)
+    else:
+      res.append(prev + [key])
+  return res
+
+
 def get_args_name(layer_weights=["softplus"],
                   loss_types=["focal"], ls="", els=""):
   """Format the arguments of SE into its name."""
@@ -227,7 +259,19 @@ def dic2table(dic, transpose=True):
     return nstrs
   return strs
 
-  
+
+def str_table_single(dic):
+  strs = []
+  for row_name in dic.keys():
+    if len(strs) == 0: # table header
+      strs.append([] + list(dic[row_name].keys()))
+    s = [row_name]
+    for col_name in dic[row_name].keys():
+      s.append(f"{dic[row_name][col_name]*100:.2f}")
+    strs.append(s)
+  return strs
+
+
 def str_latex_table(strs):
   """Format a string table to a latex table.
   
