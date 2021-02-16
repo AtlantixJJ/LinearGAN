@@ -116,5 +116,5 @@ if __name__ == "__main__":
   num = 10000
   mIoU, c_ious = evaluate_SE(SE, G.net, P,
     resolution, num, "trunc-wp")
-  name = "{args.G}_n{args.num_sample}_r{args.repeat_ind}_elstrunc-wp"
+  name = f"{args.G}_n{args.num_sample}_r{args.repeat_ind}_elstrunc-wp"
   write_results(f"results/fewshot/{name}.txt", mIoU, c_ious)

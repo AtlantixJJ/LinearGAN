@@ -39,11 +39,9 @@ def get_class_suit(ds="bedroom", labels=[]):
       yield row, col_name, arg #row_arg, col_arg
 """
 
-def get_table_suit(ds="bedroom"):
-  if "bedroom" in ds:
-    FGs = ["Bedroom", "Bedroom", "Bedroom"]
-  else:
-    FGs = ["Church", "Church", "Church"]
+def get_table_suit(G_name, ds):
+  ds_name = "Bedroom" if ds == "bedroom" else "Church"
+  FGs = [formal_generator_name(G_name) + "-" + ds_name]
   methods = ["LSE", "NSE-1", "NSE-2"]
   loss_types = ["N"]
   lrs = ["0.001"]
@@ -55,10 +53,7 @@ def get_table_suit(ds="bedroom"):
   row_names = enumerate_names(groups=row_groups)
   col_names = enumerate_names(groups=col_groups)
 
-  if "bedroom" in ds:
-    Gs = ["pggan_bedroom", "stylegan_bedroom", "stylegan2_bedroom"]
-  else:
-    Gs = ["pggan_church", "stylegan_church", "stylegan2_church"]
+  Gs = [G_name + "_" + ds]
   loss_types = ["lnormal"]
   lrs = ["lr0.001"]
   lw_types = ["lwsoftplus"]#, "lwnone"]
@@ -76,9 +71,9 @@ def get_table_suit(ds="bedroom"):
       yield row, col, arg #row_arg, col_arg
 
 
-def get_class_table(data_dir, ds):
+def get_class_table(data_dir, G_name, ds):
   dic = {}
-  for row_name, col_name, arg in get_table_suit(ds):
+  for row_name, col_name, arg in get_table_suit(G_name, ds):
     if row_name not in dic:
       dic[row_name] = {}
     fpath = f"{data_dir}/{arg}.txt"
@@ -93,7 +88,6 @@ def get_class_table(data_dir, ds):
         if float(cIoUs[i]) > 0.1:
           cious.append(float(cIoUs[i]))
           clabels.append(labels[i])
-          #print(f"=> {clabels[-1]}: {float(cious[-1])*100:.2f}%")
       dic[row_name][col_name] = cIoUs
   return dic
 
@@ -121,30 +115,32 @@ if __name__ == "__main__":
   labels = read_ade20k_labels()[1:]
   G_labels = {}
   # read classwise data
-  for ds in ["bedroom", "church"]:
-    dic = get_class_table(args.dir, ds)
-    label_indice = get_common_labels(dic)
-    selected_labels = np.array(labels)[label_indice]
-    G_labels[ds] = selected_labels
-    ndic = {}
-    for k1 in dic.keys():
-      for k2 in dic[k1].keys():
-        ndic[f"{k1}_{k2}"] = {}
-        cious = np.array(dic[k1][k2])[label_indice]
-        for n, v in zip(selected_labels, cious):
-          ndic[f"{k1}_{k2}"][n] = v
-        dic[k1][k2] = cious.mean()
+  for G_name in ["pggan", "stylegan", "stylegan2"]:
+    G_labels[G_name] = {}
+    for ds in ["bedroom", "church"]:
+      dic = get_class_table(args.dir, G_name, ds)
+      label_indice = get_common_labels(dic)
+      selected_labels = np.array(labels)[label_indice]
+      G_labels[G_name][ds] = selected_labels
+      ndic = {}
+      for k1 in dic.keys():
+        for k2 in dic[k1].keys():
+          ndic[f"{k1}_{k2}"] = {}
+          cious = np.array(dic[k1][k2])[label_indice]
+          for n, v in zip(selected_labels, cious):
+            ndic[f"{k1}_{k2}"][n] = v
+          dic[k1][k2] = cious.mean()
 
-    strs = str_table_single(dic)
-    with open(f"results/tex/{ds}_selected_classes_global.tex", "w") as f:
-      f.write(str_latex_table(strs))
+      strs = str_table_single(dic)
+      with open(f"results/tex/{G_name}_{ds}_selected_classes_global.tex", "w") as f:
+        f.write(str_latex_table(strs))
 
-    strs = str_table_single(ndic)
-    with open(f"results/tex/{ds}_selected_classes.tex", "w") as f:
-      f.write(str_latex_table(strs))
+      strs = str_table_single(ndic)
+      with open(f"results/tex/{G_name}_{ds}_selected_classes.tex", "w") as f:
+        f.write(str_latex_table(strs))
 
   with open("figure/selected_labels.csv", "w") as f:
     for G in ["stylegan2", "stylegan", "pggan"]:
       for ds in ["bedroom", "church"]:
-        s = ",".join([G + "_" + ds] + list(G_labels[ds]))
+        s = ",".join([G + "_" + ds] + list(G_labels[G][ds]))
         f.write(s + "\n")

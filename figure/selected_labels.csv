@@ -1,6 +1,6 @@
 stylegan2_bedroom,wall,floor,ceiling,bed,windowpane,table,curtain,painting,lamp,cushion,pillow,flower,light,chandelier,fan,clock
 stylegan2_church,building,sky,tree,road,grass,sidewalk,person,earth,plant,car,stairs
-stylegan_bedroom,wall,floor,ceiling,bed,windowpane,table,curtain,painting,lamp,cushion,pillow,flower,light,chandelier,fan,clock
-stylegan_church,building,sky,tree,road,grass,sidewalk,person,earth,plant,car,stairs
-pggan_bedroom,wall,floor,ceiling,bed,windowpane,table,curtain,painting,lamp,cushion,pillow,flower,light,chandelier,fan,clock
-pggan_church,building,sky,tree,road,grass,sidewalk,person,earth,plant,car,stairs
+stylegan_bedroom,wall,floor,ceiling,bed,windowpane,table,curtain,chair,painting,rug,wardrobe,lamp,cushion,chest,pillow,flower,light,chandelier,fan
+stylegan_church,building,sky,tree,road,grass,sidewalk,person,plant,signboard,path
+pggan_bedroom,wall,floor,ceiling,bed,windowpane,table,curtain,painting,lamp,pillow,light,chandelier,fan
+pggan_church,building,sky,tree,road,grass,signboard
