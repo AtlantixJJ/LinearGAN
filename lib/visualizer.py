@@ -23,6 +23,7 @@ __all__ = [
 
 
 def get_images_SE(G, SE, P, z, size=256):
+  P.eval()
   with torch.no_grad():
     if hasattr(G, "mapping"):
       wp = G.truncation(G.mapping(z))

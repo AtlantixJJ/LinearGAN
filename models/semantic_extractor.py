@@ -59,33 +59,17 @@ class SEFewShotLearner(pl.LightningModule):
     """
     batch is dummy, batch_idx is used for gradient accumulation
     """
-    feature, label = self.feature, self.label
-    idx = batch_idx % label.shape[1]
-    seg = self.model([f[idx:idx+1].cuda() for f in feature],
-      size=self.resolution)
-    segloss = self.loss_fn_final(seg, label[:, idx:idx+1])
-    total_loss = 0
-    for i in range(len(segloss)):
-      s = 0
-      for j in range(len(segloss[i])):
-        s = s + segloss[i][j]
-      total_loss = total_loss + s
-    # save prediction results
-    """
-    for cat_id in range(len(seg)):
-      if not hasattr(self, f"dt{cat_id}"):
-        setattr(self, f"dt{cat_id}", [])
-        setattr(self, f"gt{cat_id}", [])
-      getattr(self, f"dt{cat_id}").append(
-        seg[cat_id][-1].argmax(1).detach().cpu())
-      getattr(self, f"gt{cat_id}").append(label[cat_id, idx:idx+1].detach().cpu())
-    """
-    return total_loss
+    idx = batch_idx % self.label.shape[0]
+    feature = [f[idx:idx+1].cuda() for f in self.feature]
+    segs = self.model(feature, size=self.resolution)
+    seg = op.bu(segs[-1], self.label.size(2))
+    segloss = self.loss_fn_final(seg, self.label[idx:idx+1])
+    return segloss
 
   def configure_optimizers(self):
     self.adam_optim = torch.optim.Adam(self.model.parameters(), lr=self.lr)
     scheduler = torch.optim.lr_scheduler.MultiStepLR(self.adam_optim,
-      [1, 3, 7, 15], gamma=0.5)
+      [20], gamma=0.1)
     return [self.adam_optim], [scheduler]
 
 

@@ -1,17 +1,14 @@
 # python 3.7
 """Semantic-Precise Image Editing."""
 
-import sys
+import sys, os
 sys.path.insert(0, ".")
-import os.path
 import numpy as np
 import torch
 import torch.nn.functional as F
 from tqdm import tqdm
-import torchvision.utils as vutils
 
-import loss
-from utils.op import generate_images, bu
+from lib.op import generate_images, bu
 
 
 class SCS(object):
@@ -53,7 +50,6 @@ class SCS(object):
         scores.append((label == tar).sum())
     indice = np.argsort(scores)
     z_ = z[indice[:n_init]].clone()
-    #print(f"=> Finding init. best: {scores[indice[-1]]:.3f} worst: {scores[indice[0]]:.3f}")
     best_ind = indice[-1]
 
     z = z[best_ind] # (1, 512)
@@ -62,7 +58,7 @@ class SCS(object):
     for i in range(edit_strategy.n_iter):
       z, wp = edit_strategy.to_std_form()
       seg = get_seg(wp, tar.shape[2])
-      celoss = loss.FocalLoss()(seg, tar)
+      celoss = torch.nn.functional.cross_entropy(seg, tar)
       regloss = 1e-3 * ((z-z0) ** 2).sum() / z.shape[0]
       edit_strategy.step(celoss + regloss)
     #print(f"=> Final loss: {celoss + regloss:.3f}")
@@ -90,3 +86,72 @@ class SCS(object):
     for i in range(len(res[0])):
       agg.append(torch.cat([r[i] for r in res]))
     return agg
+
+
+if __name__ == "__main__":
+  import argparse, os
+  from lib.misc import imread, listkey_convert, set_cuda_devices
+
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--SE', type=str, default='expr',
+    help='The path to the experiment directories.')
+  parser.add_argument('--out-dir', type=str, default='results/scs',
+    help='The output directory.')
+  parser.add_argument('--repeat', type=int, default=10,
+    help='The output directory.')
+  parser.add_argument('--repeat-ind', type=int, default=0,
+    help='The output directory.')
+  parser.add_argument('--gpu-id', default='0',
+    help='Which GPU(s) to use. (default: `0`)')
+  parser.add_argument('--optimizer', type=str, default="adam",
+    help='The optimizer type.')
+  parser.add_argument('--base-lr', type=float, default=0.001,
+    help='The base learning rate of optimizer.')
+  parser.add_argument('--n-iter', default=50, type=int,
+    help='The number of iteration in editing.')
+  parser.add_argument('--n-init', default=10, type=int,
+    help='The number of initializations.')
+  parser.add_argument('--latent-strategy', default='z',
+    help='The latent space strategy.')
+  args = parser.parse_args()
+  set_cuda_devices(args.gpu_id)
+
+  from models.helper import build_generator, load_semantic_extractor
+  from predictors.face_segmenter import FaceSegmenter
+  from predictors.scene_segmenter import SceneSegmenter
+
+  print(f"=> Loading from {args.SE}")
+  if "baseline" in args.SE:
+    SE_name = args.SE
+  else:
+    SE = load_semantic_extractor(args.SE)
+    SE.cuda().eval()
+    SE_name = args.SE[args.SE.rfind("/") + 1: args.SE.rfind("LSE")]
+  print(SE_name)
+  G_name = listkey_convert(args.SE,
+    ["stylegan2_ffhq", "stylegan2_bedroom", "stylegan2_church"])
+  G = build_generator(G_name)
+  if "ffhq" in G_name:
+    image_ids = np.random.RandomState(1116).choice(list(range(2000)), (100,))
+    labels = np.stack([imread(f"../datasets/CelebAMask-HQ/CelebAMask-HQ-mask-15/{i}.png")
+      for i in image_ids])[:, :, :, 0] # (N, H, W, 3)
+    labels = torch.from_numpy(labels).long()
+    P = FaceSegmenter()
+  else:
+    P = SceneSegmenter(model_name=G_name)
+    wp = np.load(f"data/trunc_{G_name}/wp.npy")
+    wp = torch.from_numpy(wp).float().cuda()
+    with torch.no_grad():
+      images = generate_images(G.net, wp)
+      labels = torch.cat([P(img.unsqueeze(0).cuda())[0] for img in images], 0)
+  print(labels.shape)
+  pred = "baseline" in SE_name
+  P_ = P if pred else SE
+  out_name = f"{G_name}_{SE_name}_repeat{args.repeat_ind}"
+  if pred:
+    out_name = SE_name
+  z, wp = ConditionalSampling.sseg_se(P_, G, labels,
+    n_iter=args.n_iter, n_init=args.n_init,
+    pred=pred, repeat=args.repeat,
+    latent_strategy=args.latent_strategy)
+  torch.save([z, wp], f"{args.out_dir}/{out_name}.pth")

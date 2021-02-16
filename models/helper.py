@@ -18,6 +18,7 @@ __all__ = ['build_generator', 'build_discriminator', 'build_encoder',
 
 
 def load_semantic_extractor(fpath):
+  """Load semantic extractor from a pth path."""
   data = torch.load(fpath)
   SE_type = data["arch"]["type"]
   SE = EXTRACTOR_POOL[SE_type](**data["arch"])
