@@ -62,7 +62,7 @@ def str_table_single(dic, indicate_best=True, T=0):
   idic = invert_dic(dic)
   methods = list(dic.keys())
   Gs = list(idic.keys())
-  strs = [formal_generator_name(Gs)]
+  strs = [formal_name(Gs)]
   for method in methods:
     s = [method]
     for G in Gs:
@@ -85,11 +85,11 @@ def str_table_multiple(dic, T=0):
   cs = "c" * (mulcols - 1)
   latex_header = "\\multicolumn{" + str(mulcols) + "}{" + cs + "|}"
   strs = [["Generator"] + [latex_header + "{" + \
-    formal_generator_name(g) + "}" for g in groups]]
+    formal_name(g) + "}" for g in groups]]
   s = ["Dataset"]
   for g in groups:
     Gs = list(dic[methods[0]][g].keys()) # 2nd column name
-    s.extend(formal_generator_name(Gs))
+    s.extend(formal_name(Gs))
   strs.append(s)
   for method in methods:
     s = [method]

@@ -41,7 +41,7 @@ def get_class_suit(ds="bedroom", labels=[]):
 
 def get_table_suit(G_name, ds):
   ds_name = "Bedroom" if ds == "bedroom" else "Church"
-  FGs = [formal_generator_name(G_name) + "-" + ds_name]
+  FGs = [formal_name(G_name) + "-" + ds_name]
   methods = ["LSE", "NSE-1", "NSE-2"]
   loss_types = ["N"]
   lrs = ["0.001"]

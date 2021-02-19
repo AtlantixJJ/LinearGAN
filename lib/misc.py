@@ -165,16 +165,15 @@ def aggregate_iou(res):
   return mIoU, c_iou
 
 
-def formal_generator_name(name):
+def formal_name(name):
   """Convert the naming in code to naming in paper."""
   if type(name) is list:
-    return [formal_generator_name(n) for n in name]
+    return [formal_name(n) for n in name]
   finds = ["stylegan", "pggan", "bedroom", "church", "celebahq", "ffhq"]
   subs = ["StyleGAN", "PGGAN", "Bedroom", "Church", "CelebAHQ", "FFHQ"]
   for find, sub in zip(finds, subs):
     name = name.replace(find, sub)
   return name
-
 
 
 def enumerate_names(prev=[], i=0, groups=[]):

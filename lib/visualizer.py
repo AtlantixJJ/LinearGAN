@@ -6,6 +6,10 @@ import os.path
 import cv2, math
 import numpy as np
 from bs4 import BeautifulSoup
+import matplotlib
+import matplotlib.style as style
+style.use('seaborn-poster') #sets the size of the charts
+style.use('ggplot')
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import torch
@@ -20,6 +24,29 @@ __all__ = [
     'segviz_numpy', 'segviz_torch', 'heatmap_numpy', 'maskviz',
     'HtmlPageVisualizer', 'HtmlPageReader', 'VideoReader', 'VideoWriter'
 ]
+
+
+def plot_dict(dic, fpath=None, N_row=None, N_col=None):
+  if N_row is None:
+    N = len(dic.keys())
+    N_row = math.ceil(math.sqrt(N))
+    N_col = math.ceil(N / N_row)
+  
+  fig = plt.figure(figsize=(6 * N_col, 4 * N_row))
+  for i, (k, v) in enumerate(dic.items()):
+    ax = plt.subplot(N_row, N_col, i + 1)
+    if type(v) is dict: # multiple lines with legend
+      for iv in v.values():
+        ax.plot(iv)
+      ax.legend(list(v.keys()))
+    else:
+      ax.plot(v)
+    ax.set_title(k)
+  plt.tight_layout()
+  
+  if fpath:
+    plt.savefig(fpath)
+    plt.close()
 
 
 def get_images_SE(G, SE, P, z, size=256):
@@ -56,6 +83,7 @@ def viz_SE(G, SE, P, z, size=256):
   seg_vizs = torch.stack(seg_vizs).cpu()
   label_vizs = torch.stack(label_vizs).cpu()
   return images, seg_vizs, label_vizs, layer_vizs
+
 
 def get_label_color(label_idx):
   return high_contrast_arr[label_idx]

@@ -1,14 +1,13 @@
 import torch, sys, os, argparse, glob
 sys.path.insert(0, ".")
-from utils.misc import listkey_convert, str_latex_table, read_selected_labels
-from utils.op import torch2numpy
+from lib.misc import formal_name
+from lib.visualizer import plot_dict
 import numpy as np
-from predictors.face_segmenter import CELEBA_CATEGORY
-import matplotlib.pyplot as plt
 
-def get_SE_names():
+
+def get_SE_names(name):
   Gs = ["pggan", "stylegan", "stylegan2"]
-  Ds = ["face", "bedroom", "church"]
+  Ds = [name] #["face", "bedroom", "church"]
   SEs = ["LSE", "NSE-1", "NSE-2"]
   for G in Gs:
     for D in Ds:
@@ -20,9 +19,12 @@ def get_SE_names():
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument("--dir", default="expr/semantics", help="")
+  parser.add_argument("--name", default="bedroom", help="")
   args = parser.parse_args()
-
-  for SE_name in get_SE_names():
+  dic = {}
+  for SE_name in get_SE_names(args.name):
+    G, D, SE = SE_name.split("_")
+    G_name, D_name = formal_name(G), formal_name(D)
     expr_dir = glob.glob(f"{args.dir}/{SE_name}*")
     if len(expr_dir) == 0:
       print(f"!> {SE_name} not exist!")
@@ -32,12 +34,11 @@ if __name__ == "__main__":
     if len(res) < 50:
       print(f"!> {SE_name} data point number : {len(res)} < 50")
 
-    pixelacc = [r[0] for r in res]
     mIoU = [r[0] for r in res]
-    ax = plt.subplot(1, 2, 1)
-    ax.plot(pixelacc)
-    ax = plt.subplot(1, 2, 2)
-    ax.plot(mIoU)
-    plt.savefig(f"results/train_eval/{SE_name}.png")
-    plt.close()
+    key = f"{G_name}-{D_name}"
+    if key not in dic:
+      dic[key] = {}
+    dic[key][SE] = mIoU
+  
+  plot_dict(dic, f"results/train_eval/{args.name}.pdf", 1, 3)
 
