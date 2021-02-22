@@ -203,12 +203,14 @@ def enumerate_args(prev=[], i=0, groups=[]):
   return res
 
 
-def get_args_name(layer_weights=["softplus"],
-                  loss_types=["focal"], ls="", els=""):
+def get_args_name(methods=["LSE"], loss_types=["normal"], ls="",
+  layer_weights=["softplus"], lrs="", els=""):
   """Format the arguments of SE into its name."""
-  for layer_weight in layer_weights:
-    for loss_type in loss_types:
-      yield f"l{loss_type}_{ls}_lw{layer_weight}_{els}"
+  for m in methods:
+    for layer_weight in layer_weights:
+      for loss_type in loss_types:
+        for lr in lrs:
+          yield f"{m}_l{loss_type}_{ls}_{layer_weight}_{lr}_{els}"
 
 
 def str_num(n, F="%.3f"):

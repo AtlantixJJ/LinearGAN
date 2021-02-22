@@ -99,8 +99,6 @@ if __name__ == "__main__":
     help='The output directory.')
   parser.add_argument('--repeat', type=int, default=10,
     help='The output directory.')
-  parser.add_argument('--repeat-ind', type=int, default=0,
-    help='The output directory.')
   parser.add_argument('--gpu-id', default='0',
     help='Which GPU(s) to use. (default: `0`)')
   parser.add_argument('--optimizer', type=str, default="adam",

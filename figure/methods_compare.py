@@ -11,7 +11,7 @@ def get_table_suit(name):
   # default: full
   methods = ["LSE", "NSE-1", "NSE-2"]
   layer_weights = ["softplus"]
-  loss_types = ["focal"]
+  loss_types = ["normal"]
 
   if "notrunc" in name:
     ls = "lsnotrunc-mixwp"
@@ -78,61 +78,58 @@ def str_table_single(dic, indicate_best=True, T=0):
   return strs
 
 
-def str_table_multiple(dic, T=0):
-  methods = list(dic.keys()) # row names
-  groups = list(dic[methods[0]].keys()) # 1st column name
-  mulcols = len(dic[methods[0]][groups[0]].keys())
-  cs = "c" * (mulcols - 1)
-  latex_header = "\\multicolumn{" + str(mulcols) + "}{" + cs + "|}"
-  strs = [["Generator"] + [latex_header + "{" + \
-    formal_name(g) + "}" for g in groups]]
+def str_table_multiple(dic, T=0): # group, G, method
+  groups = list(dic.keys()) # 1st column name
+  def latex_header(n):
+    return f"\\multicolumn" + "{" + str(n) + "}" + "{c|}"
+  strs = [["Generator"] + [f"{latex_header(len(dic[g].keys()))}" + \
+            "{" + formal_name(g) + "}" for g in groups]]
   s = ["Dataset"]
   for g in groups:
-    Gs = list(dic[methods[0]][g].keys()) # 2nd column name
+    Gs = list(dic[groups[0]].keys()) # 2nd column name
     s.extend(formal_name(Gs))
   strs.append(s)
-  for method in methods:
-    s = [method]
-    for group in groups:
-      for G in dic[method][group].keys():
-        dic_ = {m : dic[m][group][G] if G in dic[m][group] else 0
-                  for m in methods}
-        best_ind, best_method, best_val = max_key(dic_)
-        acc = f"{dic[method][group][G] * 100:.1f}\\%"
-        comp = (dic[method][group][G] - best_val) / best_val * 100
+
+  s_ = []
+  for group in dic.keys():
+    for ds in dic[group].keys():
+      best_ind, best_method, best_val = max_key(dic[group][ds])
+      for i, method in enumerate(dic[group][ds].keys()):
+        acc = f"{dic[group][ds][method] * 100:.1f}\\%"
+        comp = (dic[group][ds][method] - best_val) / best_val * 100
         if best_method == method:
           item_str = "\\textbf{" + acc + "}"
         else:
           item_str = f"{acc} ({comp:.1f}\\%)"
-        s.append(item_str)
-    strs.append(s)
+        if len(s_) <= i:
+          s_.append([method])
+        s_[i].append(item_str)
+  strs.extend(s_)
   return strs
 
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument("--dir", default="results/semantics/", help="")
-  parser.add_argument("--name", default="all-trunc-teval")
+  parser.add_argument("--name", default="other-trunc-teval")
   parser.add_argument("--force-calc", default=0, type=int)
   args = parser.parse_args()
   params = get_table_suit(args.name)
   print(params)
   dic = {}
-  for G_group in params[0]:
-    if type(G_group) is dict:
-      for group_name, Gs in G_group.items():
-        dic[group_name] = {}
-        for G in Gs:
-          dic[group_name][G] = {}
-          for args_name in get_args_name(*params[1:]):
-            method = args_name[0]
-            args_name = "_".join(args_name)
-            fpath = f"{args.dir}/{G}_{args_name}.txt"
-            print(fpath)
-            mIoU = read_results(fpath)
-            if mIoU < 0:
-              continue
-            dic[dataset][G][method] = float(mIoU)
+  for group_name, Gs in params[0].items():
+    dic[group_name] = {}
+    for G in Gs:
+      ds = G.split("_")[1]
+      dic[group_name][ds] = {}
+      for args_name in get_args_name(*params[1:]):
+        method = args_name.split("_")[0]
+        fpath = f"{args.dir}/{G}_{args_name}.txt"
+        print(fpath)
+        mIoU, cious = read_results(fpath)
+        if mIoU < 0:
+          continue
+        dic[group_name][ds][method] = float(mIoU)
 
   strs = str_table_multiple(dic)
 
