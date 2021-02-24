@@ -26,15 +26,23 @@ var imwidth = 256, // image size
 var use_args = false; // [deprecated]
 var spinner = new Spinner({ color: '#999' });
 
-var CATEGORY = ['background', 'skin', 'nose', 'eye glasses', 'eye', 'brow', 'ear', 'mouth', 'upper lip', 'lower lip', 'hair', 'hat', 'ear rings', 'necklace', 'neck', 'cloth'];
+var FACE_CATEGORY = ['background', 'skin', 'nose', 'eye glasses', 'eye', 'brow', 'ear', 'mouth', 'upper lip', 'lower lip', 'hair', 'hat', 'ear rings', 'necklace', 'neck', 'cloth'];
+var STYLEGAN2_BEDROOM_CATEGORY = ['wall','floor','ceiling','bed','windowpane','table','curtain','painting','lamp','cushion','pillow','flower','light','chandelier','fan','clock'];
+
 //var CATEGORY_COLORS = ['rgb(0, 0, 0)', 'rgb(128, 0, 0)', 'rgb(0, 128, 0)', 'rgb(128, 128, 0)', 'rgb(0, 0, 128)', 'rgb(128, 0, 128)', 'rgb(0, 128, 128)', 'rgb(128, 128, 128)', 'rgb(64, 0, 0)', 'rgb(192, 0, 0)', 'rgb(64, 128, 0)', 'rgb(192, 128, 0)', 'rgb(64, 0, 128)', 'rgb(192, 0, 128)', 'rgb(64, 128, 128)', 'rgb(192, 128, 128)'];
-var CATEGORY_COLORS = [
+var FACE_CATEGORY_COLORS = [
   'rgb(0, 0, 0)', 'rgb(255, 255, 0)', 'rgb(28, 230, 255)',
   'rgb(255, 52, 255)', 'rgb(255, 74, 70)', 'rgb(0, 137, 65)',
   'rgb(0, 111, 166)', 'rgb(163, 0, 89)', 'rgb(255, 219, 229)',
   'rgb(122, 73, 0)', 'rgb(0, 0, 166)', 'rgb(99, 255, 172)',
   'rgb(183, 151, 98)', 'rgb(0, 77, 67)', 'rgb(143, 176, 255)'];
+var STYLEGAN2_BEDROOM_COLORS = FACE_CATEGORY_COLORS;
 
+var category = null, category_colors = null;
+var name2cat = {
+  'Bedroom' : [STYLEGAN2_BEDROOM_CATEGORY, STYLEGAN2_BEDROOM_COLORS],
+  'Face' : [FACE_CATEGORY, FACE_CATEGORY_COLORS]};
+  
 /* 
 'rgb(153, 125, 135)',
 'rgb(90, 0, 7)', 'rgb(128, 150, 147)', 'rgb(254, 255, 230)', 'rgb(27, 68, 0)',
@@ -192,8 +200,8 @@ function onChooseFile(e) {
   // console.log($('.custom-file-control').after());
 }
 
-function init() {
-  COLORS.forEach(function (color) {
+function init_menu() {
+  category_colors.forEach(function (color) {
     $('#color-menu').append(
       '\n<li role="presentation">\n  <div onclick="setColor(\'' +
       color +
@@ -203,17 +211,19 @@ function init() {
       '"/>\n  </div>\n</li>');
   });
 
-  CATEGORY_COLORS.forEach(function (color, idx) {
+  category_colors.forEach(function (color, idx) {
     $('#category-menu').append(
       '\n<li role="presentation">\n' +
       ' <div style="float:left;width:100%" onclick="setCategory(\'' +color + '\')">\n' + 
       '   <div class="color-block" style="float:left;background-color:' + color + 
       ';border:' + (color == 'white' ? 'solid 1px rgba(0, 0, 0, 0.2)' : 'none') + '"/>\n' +
       '   <div class="semantic-block" >' + 
-      CATEGORY[idx] + '</div>\n</div>\n</li>');
+      category[idx] + '</div>\n</div>\n</li>');
   });
+}
 
-
+function init() {
+  init_menu();
   MODEL_NAMES.forEach(function (model, idx) {
     $('#model-menu').append(
       '<li role="presentation">\n' +
@@ -287,8 +297,6 @@ function init() {
   });
   $('#start-new').click(onStartNew);
   $('#start').click(onStart);
-  // $('#choose').change(onChooseFile);
-  // $('#upload').click(onUpload);
 }
 
 function download(data, filename) {
@@ -305,6 +313,8 @@ $(document).ready(function () {
       config = JSON.parse(text);
       MODEL_NAMES = Object.keys(config.models);
       var key = MODEL_NAMES[0];
+      category = name2cat[key][0];
+      category_colors = name2cat[key][1];
       imwidth = config.models[key].output_size;
       imheight = config.models[key].output_size;
       document.getElementById('model-label').textContent = key;

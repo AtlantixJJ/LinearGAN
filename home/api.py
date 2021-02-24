@@ -2,16 +2,17 @@
 """
 import sys
 sys.path.insert(0, '.')
-import time, json, os
+import time, json, os, torch, threading
 import numpy as np
-import torch
+
 from home.utils import *
 from models.helper import *
 from lib.op import sample_image_feature, torch2image, torch2numpy
+from lib.misc import imwrite
 from lib.visualizer import segviz_numpy
 from models.semantic_extractor import LSE, SEFewShotLearner
-import threading
-
+from manipulation.spie import ImageEditing
+from manipulation.strategy import EditStrategy
 
 """
 class AddDataThread(threading.Thread):
@@ -164,7 +165,7 @@ class ModelAPI(object):
     self.init_model()
 
 
-class ImageGenerationAPI(object):
+class EditAPI(object):
   def __init__(self, MA):
     self.ma = MA
     self.Gs = MA.Gs
@@ -174,20 +175,24 @@ class ImageGenerationAPI(object):
   def has_model(self, model_name):
     return model_name in list(self.Gs.keys())
 
-  def generate_image_given_stroke(self, model_name, z,
+  def generate_image_given_stroke(self, model_name, zs,
     image_stroke, image_mask, label_stroke, label_mask):
     G = self.Gs[model_name]
     SE = self.SE[model_name]
-    z = np.fromstring(z, dtype=np.float32).reshape((1, -1))
-    save_npy_with_time(self.data_dir, z, "origin_z")
-    save_image_with_time(self.data_dir, image_stroke, "image_stroke")
-    save_image_with_time(self.data_dir, label_stroke, "label_stroke")
-    save_image_with_time(self.data_dir, image_mask, "image_mask")
-    save_image_with_time(self.data_dir, label_mask, "label_mask")
+    zs = np.fromstring(zs, dtype=np.float32)
+    zs = zs.reshape((G.num_layers, -1))
+    time_str = get_time_str()
+    p = f"{self.data_dir}/{time_str}"
+    np.save(f"{p}_origin-zs.npy", zs)
+    imwrite(f"{p}_image-stroke.png", image_stroke)
+    imwrite(f"{p}_label-stroke", label_stroke)
+    imwrite(f"{p}_image-mask", image_mask)
+    imwrite(f"{p}_label-mask", label_mask)
 
     size = self.models_config[model_name]["output_size"]
-    z = torch.from_numpy(z).view(1, 512).cuda()
-    wp = G.mapping(z).unsqueeze(1).repeat(1, G.num_layers, 1)
+    zs = torch.from_numpy(zs).float().cuda().unsqueeze(0) # (1, 18, 512)
+    wp = EditStrategy.z_to_wp(G, zs,
+      in_type="zs", out_type="notrunc-wp")
     image_stroke = preprocess_image(image_stroke, size).cuda()
     image_mask = preprocess_mask(image_mask, size).cuda()
     x = torch.from_numpy(imresize(label_stroke, (size, size)))
@@ -197,24 +202,33 @@ class ImageGenerationAPI(object):
       t[color_mask(x, c)] = i
     label_stroke = t.unsqueeze(0).cuda()
     label_mask = preprocess_mask(label_mask, size).squeeze(1).cuda()
+    print(zs.shape, tar.shape, mask.shape)
+    z, wp = ImageEditing.sseg_edit(
+      G, zs, tar, label_mask, P_,
+      op=args.op,
+      latent_strategy=args.latent_strategy,
+      optimizer=args.optimizer,
+      n_iter=args.n_iter,
+      base_lr=args.base_lr)
+
     image, feature = G.synthesis(wp.cuda(), generate_feature=True)
     label = SE(feature)[0][0].argmax(0)
     image = torch2image(image)[0]
     label_viz = segviz_numpy(torch2numpy(label))
     z = np.float32(z.detach().cpu()).tobytes()
-    save_image_with_time(self.data_dir, image, "newimage") # generated
-    save_image_with_time(self.data_dir, label_viz, "newlabel")
+    imwrite(f"{p}_new-image", image) # generated
+    imwrite(f"{p}_new-label", label_viz)
     return image, label_viz, z
 
   def generate_new_image(self, model_name):
     G = self.Gs[model_name]
     z = torch.randn(1, 512).cuda()
-    wp = G.mapping(z).unsqueeze(1).repeat(1, G.num_layers, 1)
+    zs = z.repeat(G.num_layers, 1) # use mixwp
+    wp = G.mapping(z).repeat(G.num_layers, 1).unsqueeze(0)
     image, feature = G.synthesis(wp, generate_feature=True)
-    seg = self.SE[model_name](feature)[0]
+    seg = self.SE[model_name](feature)[-1]
     label = seg[0].argmax(0)
-    print(label.shape)
     image = torch2image(image).astype("uint8")[0]
     label_viz = segviz_numpy(torch2numpy(label))
-    z = np.float32(z.cpu()).tobytes()
-    return image, label_viz, z
+    zs = str(np.float32(zs.detach().cpu()).tobytes())
+    return image, label_viz, zs

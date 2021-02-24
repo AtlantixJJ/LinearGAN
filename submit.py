@@ -67,7 +67,7 @@ def train_fewshot():
   cmds = []
   evalcmd = "python3 train_fewshot.py --G {G} --num-sample {num_sample} --repeat-ind {repeat_ind}"
   for repeat_ind in range(5):
-    for G in ["stylegan2_church", "stylegan2_bedroom"]:#["stylegan2_ffhq"]
+    for G in ["stylegan2_ffhq"]:#["stylegan2_church", "stylegan2_bedroom"]:
       for num_sample in [8, 1, 4, 16]:
         cmds.append(evalcmd.format(G=G,
           num_sample=num_sample, repeat_ind=repeat_ind))

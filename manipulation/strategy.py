@@ -23,6 +23,28 @@ class EditStrategy(object):
       wp = self.G.mapping(self.z).unsqueeze(1)
       return self.z, wp.repeat(1, self.num_layers, 1)
 
+  @staticmethod
+  def z_to_wp(G, z, in_type="z", out_type="trunc-wp"):
+    """
+    Args:
+      z : (N, 512) or (N, L, 512)
+      in_type : z, or zs
+      out_type : zs, trunc-wp, notrunc-wp
+    """
+    if latent_type == "z":
+      assert len(z.shape) == 2
+      zs = z.repeat(G.num_layers, 1)
+    elif latent_type == "zs":
+      zs = zs.view(-1, zs.shape[-1]) # flatten
+    if out_type == "zs":
+      return zs
+    wp = G.mapping(zs)
+    if out_type == "trunc-wp":
+      wp = torch.stack([G.truncation(w)[0] for w in wp])
+      print(wp.shape)
+    return wp
+
+
   def setup(self, z_init):
     """
     """
@@ -31,14 +53,16 @@ class EditStrategy(object):
       self.optim = self.optimizer_type([self.z], lr=self.base_lr)
 
     if self.latent_strategy == "mixwp":
-      assert list(z_init.shape) == [1, 512]
       get_lr = self.get_layer_lr_func()
       
       if hasattr(self, "zs"): # clear previous results
         del self.z0
         del self.zs
         del self.optims
-      self.z0 = z_init.repeat(self.num_layers, 1).cuda()
+      if list(z_init.shape) == [1, 512]:
+        self.z0 = z_init.repeat(self.num_layers, 1).cuda()
+      elif len(z_init.shape) == 2:
+        self.z0 = z_init.cuda()
       # each item in self.zs is of shape (512,)
       self.zs = [self.z0[i].clone().detach().requires_grad_(True)
         for i in range(self.z0.shape[0])]
@@ -68,7 +92,6 @@ class EditStrategy(object):
     else:
       return base_lr / 1000
 
-
   @staticmethod
   def get_lr_bedroom(layer_idx, base_lr=0.01):
     if layer_idx <= 5:
@@ -77,7 +100,6 @@ class EditStrategy(object):
       return base_lr
     else:
       return base_lr / 10
-
 
   def get_layer_lr_func(self):
     """

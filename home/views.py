@@ -16,7 +16,7 @@ from datetime import datetime
 EDIT_INDEX = "index_edit.html"
 TRAIN_INDEX = "index_train.html"
 model_manager = api.ModelAPI("home/static/config.json")
-editor = api.ImageGenerationAPI(model_manager)
+editor = api.EditAPI(model_manager)
 trainer = api.TrainAPI(model_manager)
 model_name = list(model_manager.models_config.keys())[0]
 imsize = model_manager.models_config[model_name]["output_size"]
@@ -44,12 +44,13 @@ def response_image(image):
   return HttpResponse(json)
 
 
-def save_to_session(session, z_s):
-  session["z_s"] = z_s
+def save_to_session(session, zs):
+  session["zs"] = zs
+
 
 def restore_from_session(session):
-  latent = session["z_s"]
-  return latent
+  zs = session["zs"]
+  return zs
 
 
 def index(request):
@@ -107,9 +108,9 @@ def generate_new_image(request):
         print("=> No model name %s" % model)
         return HttpResponse('{}')
 
-      image, z = editor.generate_new_image(model)
-      save_to_session(sess, z)
-      return response(image, label)
+      image, label, zs = editor.generate_new_image(model)
+      save_to_session(sess, zs)
+      return response_image_label(image, label)
     except Exception:
       print("!> Exception:")
       traceback.print_exc()

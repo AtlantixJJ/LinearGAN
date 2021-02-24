@@ -19,7 +19,7 @@ from . import views
 
 urlpatterns = [
     url(r'^train$', views.train),
-    url(r'^$', views.index),
+    url(r'^edit$', views.index),
     url(r'^stroke$', views.generate_image_given_stroke),
     url(r'^train/new$', views.train_get_new_image),
     url(r'^new$', views.generate_new_image),

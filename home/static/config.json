@@ -6,7 +6,7 @@
             "gpu" : 0,
             "out_dim" : 3,
             "output_size" : 256,
-            "SE" : "predictors/pretrain/stylegan2_bedroom_LSE.pth"
+            "SE" : "predictors/pretrain/stylegan2_bedroom_8shot_LSE.pth"
         }
     }
 }

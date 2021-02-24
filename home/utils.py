@@ -112,28 +112,8 @@ def stroke2array(image, target_size=None):
   return origin, mask
 
 
-def save_npy_with_time(dirname, arr, name):
-  """
-  Args:
-    image: numpy image
-  """
-  if not os.path.exists(dirname):
-    os.makedirs(dirname)
-  time_str = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-  np.save(os.path.join(dirname, '%s_%s.npy' %
-              (time_str, name)), arr)
-
-
-def save_image_with_time(dirname, image, name):
-  """
-  Args:
-    image: numpy image
-  """
-  if not os.path.exists(dirname):
-    os.makedirs(dirname)
-  time_str = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-  save_image(os.path.join(dirname, '%s_%s.png' %
-              (time_str, name)), image)
+def get_time_str():
+  return datetime.now().strftime('%Y%m%d_%H%M%S_%f')
 
 
 def save_plot_with_time(dirname, name):

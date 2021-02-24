@@ -23,7 +23,7 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument("--dir", default="results/semantics", help="")
   parser.add_argument("--name", default="all-notrunc-teval")
-  parser.add_argument("--label-file", default="figure/selected_labels.csv", type=int)
+  parser.add_argument("--label-file", default="figure/selected_labels.csv", type=str)
   args = parser.parse_args()
 
   if "face" in args.name:
@@ -34,7 +34,6 @@ if __name__ == "__main__":
       "stylegan2_bedroom", "stylegan2_church",
       "stylegan_bedroom", "stylegan_church", 
       "pggan_bedroom", "pggan_church"]
-    
 
   model_label = read_selected_labels()
 
@@ -45,17 +44,14 @@ if __name__ == "__main__":
       if "face" not in args.name:
         labels = model_label[G]
       dic[G][method] = {k:0 for k in labels}
-      optim = "adam-0.001" 
-      args_name = f"{optim}_t1_d0_lfocal_lsnotrunc-mixwp_elstrunc-wp"
-      fpath = f"{args.dir}/{G}_{method}_{args_name}_evaluation.pth"
+      args_name = f"lnormal_lstrunc-wp_lwsoftplus_lr0.001_elstrunc-wp"
+      fpath = f"{args.dir}/{G}_{method}_{args_name}.txt"
       mIoU, c_iou = read_results(fpath)
       if mIoU < 0:
         continue
-      print(G, len(c_iou), len(labels))
       for i in range(len(c_iou)):
         dic[G][method][labels[i]] = c_iou[i]
 
-  #strs = str_table_multiple(dic)
   for k, v in dic.items():
     strs = str_table_single(dic[k], False, 0)
     with open(f"results/tex/{args.name}_{k}.tex", "w") as f:

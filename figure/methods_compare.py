@@ -111,7 +111,7 @@ def str_table_multiple(dic, T=0): # group, G, method
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument("--dir", default="results/semantics/", help="")
-  parser.add_argument("--name", default="other-trunc-teval")
+  parser.add_argument("--name", default="all-trunc-teval")
   parser.add_argument("--force-calc", default=0, type=int)
   args = parser.parse_args()
   params = get_table_suit(args.name)
@@ -125,7 +125,6 @@ if __name__ == "__main__":
       for args_name in get_args_name(*params[1:]):
         method = args_name.split("_")[0]
         fpath = f"{args.dir}/{G}_{args_name}.txt"
-        print(fpath)
         mIoU, cious = read_results(fpath)
         if mIoU < 0:
           continue

@@ -1,6 +1,6 @@
 import sys, argparse
 sys.path.insert(0, ".")
-import torch
+import torch, os
 from tqdm import tqdm
 import numpy as np
 import pytorch_lightning as pl
@@ -28,13 +28,15 @@ def get_features(synthesis, wp, P=None, is_large_mem=False):
 
 
 class UpdateDataCallback(pl.Callback):
-  def __init__(self, wp=None):
+  def __init__(self, wp=None, is_large_mem=False):
     super().__init__()
+    self.is_large_mem = is_large_mem
     self.wp = wp
   
   def on_epoch_end(self, trainer, pl_module):
-    features = get_features(G.net.synthesis, self.wp)
     del pl_module.feature
+    features = get_features(G.net.synthesis, self.wp,
+      is_large_mem=self.is_large_mem)
     pl_module.feature = features
 
 
@@ -51,6 +53,15 @@ if __name__ == "__main__":
   parser.add_argument('--G', type=str, default='stylegan2_ffhq',
   help='The model type of generator')
   args = parser.parse_args()
+
+  is_large_mem = "ffhq" in args.G and args.num_sample >= 4
+  is_face = "celebahq" in args.G or "ffhq" in args.G
+  resolution = 512 if is_face else 256
+  DIR = f"{args.expr}/{args.G}_LSE_fewshot"
+  fpath = f"{DIR}_LSE_fewshot/r{args.repeat_ind}_n{args.num_sample}.pth"
+  if os.path.exists(fpath):
+    print(f"=> Skip {fpath}")
+    exit(0)
 
   seed = [19961116, 1997816, 1116, 816, 19980903][args.repeat_ind]
   torch.manual_seed(seed)
@@ -69,10 +80,6 @@ if __name__ == "__main__":
   from predictors.face_segmenter import FaceSegmenter
   from predictors.scene_segmenter import SceneSegmenter
 
-  is_large_mem = "ffhq" in args.G and args.num_sample >= 4
-  is_face = "celebahq" in args.G or "ffhq" in args.G
-  resolution = 512 if is_face else 256
-  DIR = f"{args.expr}/{args.G}_LSE_fewshot"
   G = StyleGAN2Generator(model_name=args.G, randomize_noise=True) 
   P = FaceSegmenter() if is_face else SceneSegmenter(model_name=args.G)
   P.eval().cuda()
@@ -82,7 +89,7 @@ if __name__ == "__main__":
   dims = [s.shape[1] for s in features]
   layers = list(range(len(dims)))
   logger = pl_logger.TensorBoardLogger(DIR)
-  udc = UpdateDataCallback()
+  udc = UpdateDataCallback(is_large_mem=is_large_mem)
   callbacks = [udc,
     SEVisualizerCallback(torch.randn(6, 512).cuda(), interval=1000)]
   dm = NoiseDataModule(train_size=128, batch_size=1)
