@@ -9,6 +9,7 @@ import torch.nn.functional as F
 from tqdm import tqdm
 
 from lib.op import generate_images, bu
+from manipulation.strategy import EditStrategy
 
 
 class SCS(object):
@@ -34,7 +35,7 @@ class SCS(object):
         seg = SE.raw_prediction(image, size=size)
         return seg
       image, feature = G.synthesis(wp, generate_feature=True)
-      seg = SE(feature, size=size, last_only=True)[0][0]
+      seg = SE(feature, size=size)[-1]
       return seg
 
     BS = 4
@@ -80,7 +81,7 @@ class SCS(object):
     res = []
     for i in tqdm(range(tar.shape[0])):
       for j in range(repeat):
-        res.append(ConditionalSampling.__sseg_se(SE, G.net,
+        res.append(SCS.__sseg_se(SE, G.net,
           tar[i:i+1].cuda(), n_init, edit_strategy, pred))
     agg = []
     for i in range(len(res[0])):
@@ -93,11 +94,13 @@ if __name__ == "__main__":
   from lib.misc import imread, listkey_convert, set_cuda_devices
 
   parser = argparse.ArgumentParser()
-  parser.add_argument('--SE', type=str, default='expr',
+  parser.add_argument('--SE', type=str, default='expr/fewshot',
     help='The path to the experiment directories.')
   parser.add_argument('--out-dir', type=str, default='results/scs',
     help='The output directory.')
   parser.add_argument('--repeat', type=int, default=10,
+    help='The output directory.')
+  parser.add_argument('--repeat-ind', type=int, default=0,
     help='The output directory.')
   parser.add_argument('--gpu-id', default='0',
     help='Which GPU(s) to use. (default: `0`)')
@@ -142,13 +145,12 @@ if __name__ == "__main__":
     with torch.no_grad():
       images = generate_images(G.net, wp)
       labels = torch.cat([P(img.unsqueeze(0).cuda())[0] for img in images], 0)
-  print(labels.shape)
   pred = "baseline" in SE_name
   P_ = P if pred else SE
   out_name = f"{G_name}_{SE_name}_repeat{args.repeat_ind}"
   if pred:
     out_name = SE_name
-  z, wp = ConditionalSampling.sseg_se(P_, G, labels,
+  z, wp = SCS.sseg_se(P_, G, labels,
     n_iter=args.n_iter, n_init=args.n_init,
     pred=pred, repeat=args.repeat,
     latent_strategy=args.latent_strategy)

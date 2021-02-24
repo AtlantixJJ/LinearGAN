@@ -76,29 +76,18 @@ def train_fewshot():
 
 def scs():
   cmds = []
-  SEs = ["expr/fewshot/{G}_LSE_fewshot_adam-0.01_lsnotrunc-mixwp/r{repeat_ind}_n{num_sample}LSE_15_512,512,512,512,512,512,512,512,512,256,256,128,128,64,64,32,32_0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16.pth", "expr/fewshot/{G}_LSE_fewshot_adam-0.01_lsnotrunc-mixwp/r{repeat_ind}_n{num_sample}LSE_13_512,512,512,512,512,512,512,512,512,256,256,128,128_0,1,2,3,4,5,6,7,8,9,10,11,12.pth", "expr/fewshot/{G}_LSE_fewshot_adam-0.01_lsnotrunc-mixwp/r{repeat_ind}_n{num_sample}LSE_9_512,512,512,512,512,512,512,512,512,256,256,128,128_0,1,2,3,4,5,6,7,8,9,10,11,12.pth"]
   Gs = ["stylegan2_ffhq", "stylegan2_bedroom", "stylegan2_church"]
   n_inits = [10, 100, 100]
-  evalcmd = "python script/semantics/conditional_sampling.py --SE {SE} --n-init {n_init} --repeat-ind {repeat_ind}"
-  #Gs = Gs[1:]; SEs = SEs[1:]; n_inits = n_inits[1:]
-  for repeat_ind in range(5):
-    for G, se, n_init in zip(Gs, SEs, n_inits):
-      for num_sample in [1, 8]:#4, 8, 16]:
-        SE = se.format(
-          G=G,
-          num_sample=num_sample,
-          repeat_ind=repeat_ind)
-        cmds.append(evalcmd.format(
-          SE=SE,
-          n_init=n_init,
-          repeat_ind=repeat_ind))
-        """
-        if num_sample == 1 and repeat_ind == 0:
-          cmds.append(evalcmd.format(
-            SE=f"{G}_baseline",
-            n_init=n_init,
-            repeat_ind=repeat_ind))
-        """
+  SE_format = "expr/fewshot/{G}_LSE_fewshot/r{rind}_n{num_sample}.pth"
+  evalcmd = "python manipulation/scs.py --SE {SE} --n-init {n_init} --repeat-ind {rind}"
+  for rind in range(5):
+    for num_sample in [1, 8, 4, 16]:
+      for G, n_init in zip(Gs, n_inits):
+        SE = SE_format.format(G=G, rind=rind, num_sample=num_sample)
+        cmds.append(evalcmd.format(SE=SE, rind=rind, n_init=n_init))
+        if num_sample == 1 and rind == 0:
+          SE = f"{G}_baseline"
+          cmds.append(evalcmd.format(SE=SE, n_init=n_init, rind=rind))
 
   return cmds
 
@@ -154,6 +143,6 @@ else:
     gpu = gpus[i % len(gpus)]
     slots[i % len(gpus)].append(f"{cmd} --gpu-id {gpu}")
   for s in slots:
-    cmd = " && ".join(s) + " &"
+    cmd = " && ".join(s) #+ " &"
     print(cmd)
     os.system(cmd)

@@ -1,3 +1,6 @@
+import torch
+
+
 class EditStrategy(object):
   """Manage the optimization, latent space choice and learning rate adaption.
   """

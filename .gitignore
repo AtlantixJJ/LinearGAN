@@ -2,4 +2,5 @@ models/pretrain
 predictors/pretrain
 expr
 results
+data
 *__pycache__
