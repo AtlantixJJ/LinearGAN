@@ -79,7 +79,7 @@ def scs():
   Gs = ["stylegan2_ffhq", "stylegan2_bedroom", "stylegan2_church"]
   n_inits = [10, 100, 100]
   SE_format = "expr/fewshot/{G}_LSE_fewshot/r{rind}_n{num_sample}.pth"
-  evalcmd = "python manipulation/scs.py --SE {SE} --n-init {n_init} --repeat-ind {rind}"
+  evalcmd = "python manipulation/scs.py --SE {SE} --n-init {n_init}"
   for rind in range(5):
     for num_sample in [1, 8, 4, 16]:
       for G, n_init in zip(Gs, n_inits):
@@ -87,7 +87,7 @@ def scs():
         cmds.append(evalcmd.format(SE=SE, rind=rind, n_init=n_init))
         if num_sample == 1 and rind == 0:
           SE = f"{G}_baseline"
-          cmds.append(evalcmd.format(SE=SE, n_init=n_init, rind=rind))
+          cmds.append(evalcmd.format(SE=SE, n_init=n_init))
 
   return cmds
 

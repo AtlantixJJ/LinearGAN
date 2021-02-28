@@ -26,46 +26,27 @@ var imwidth = 256, // image size
 var use_args = false; // [deprecated]
 var spinner = new Spinner({ color: '#999' });
 
-var FACE_CATEGORY = ['background', 'skin', 'nose', 'eye glasses', 'eye', 'brow', 'ear', 'mouth', 'upper lip', 'lower lip', 'hair', 'hat', 'ear rings', 'necklace', 'neck', 'cloth'];
+var FACE_CATEGORY = ['background', 'skin', 'nose', 'eye glasses', 'eye', 'brow', 'ear', 'mouth', 'upper lip', 'lower lip', 'hair', 'hat', 'ear rings', 'neck', 'cloth'];
 var STYLEGAN2_BEDROOM_CATEGORY = ['wall','floor','ceiling','bed','windowpane','table','curtain','painting','lamp','cushion','pillow','flower','light','chandelier','fan','clock'];
 
-//var CATEGORY_COLORS = ['rgb(0, 0, 0)', 'rgb(128, 0, 0)', 'rgb(0, 128, 0)', 'rgb(128, 128, 0)', 'rgb(0, 0, 128)', 'rgb(128, 0, 128)', 'rgb(0, 128, 128)', 'rgb(128, 128, 128)', 'rgb(64, 0, 0)', 'rgb(192, 0, 0)', 'rgb(64, 128, 0)', 'rgb(192, 128, 0)', 'rgb(64, 0, 128)', 'rgb(192, 0, 128)', 'rgb(64, 128, 128)', 'rgb(192, 128, 128)'];
 var FACE_CATEGORY_COLORS = [
   'rgb(0, 0, 0)', 'rgb(255, 255, 0)', 'rgb(28, 230, 255)',
   'rgb(255, 52, 255)', 'rgb(255, 74, 70)', 'rgb(0, 137, 65)',
   'rgb(0, 111, 166)', 'rgb(163, 0, 89)', 'rgb(255, 219, 229)',
   'rgb(122, 73, 0)', 'rgb(0, 0, 166)', 'rgb(99, 255, 172)',
   'rgb(183, 151, 98)', 'rgb(0, 77, 67)', 'rgb(143, 176, 255)'];
-var STYLEGAN2_BEDROOM_COLORS = FACE_CATEGORY_COLORS;
+var STYLEGAN2_BEDROOM_COLORS = [
+  'rgb(255, 255, 0)', 'rgb(28, 230, 255)',
+  'rgb(255, 52, 255)', 'rgb(255, 74, 70)', 'rgb(0, 137, 65)',
+  'rgb(0, 111, 166)', 'rgb(163, 0, 89)', 'rgb(255, 219, 229)',
+  'rgb(122, 73, 0)', 'rgb(0, 0, 166)', 'rgb(99, 255, 172)',
+  'rgb(183, 151, 98)', 'rgb(0, 77, 67)', 'rgb(143, 176, 255)'];
 
 var category = null, category_colors = null;
 var name2cat = {
   'Bedroom' : [STYLEGAN2_BEDROOM_CATEGORY, STYLEGAN2_BEDROOM_COLORS],
   'Face' : [FACE_CATEGORY, FACE_CATEGORY_COLORS]};
   
-/* 
-'rgb(153, 125, 135)',
-'rgb(90, 0, 7)', 'rgb(128, 150, 147)', 'rgb(254, 255, 230)', 'rgb(27, 68, 0)',
-'rgb(79, 198, 1)', 'rgb(59, 93, 255)', 'rgb(74, 59, 83)', 'rgb(255, 47, 128)',
-'rgb(97, 97, 90)', 'rgb(186, 9, 0)', 'rgb(107, 121, 0)', 'rgb(0, 194, 160)',
-'rgb(255, 170, 146)', 'rgb(255, 144, 201)', 'rgb(185, 3, 170)', 'rgb(209, 97, 0)',
-'rgb(221, 239, 255)', 'rgb(0, 0, 53)'
-*/
-
-var COLORS = [ // drawing colors
-  'black',
-  'rgb(208, 2, 27)',
-  'rgb(245, 166, 35)',
-  'rgb(248, 231, 28)',
-  'rgb(139, 87, 42)',
-  'rgb(126, 211, 33)',
-  'white',
-  'rgb(226, 238, 244)',
-  'rgb(226, 178, 213)',
-  'rgb(189, 16, 224)',
-  'rgb(74, 144, 226)',
-  'rgb(80, 227, 194)',
-];
 
 var MODEL_NAMES = []
 
@@ -252,6 +233,7 @@ function init() {
   });
 
   setColor('black');
+  setCategory(category_colors[0]);
   setLineWidth(MAX_LINE_WIDTH / 2);
 
   $('#download-sketch').click(function () {

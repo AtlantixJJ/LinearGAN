@@ -26,10 +26,9 @@
   <title>Image Edit</title>
 </head>
 
-<body>
+<body style="background-color: #FDF8F5">
   <div class="container-fluid">
-    <div id="frame" class="col-md-12"> <!-- col-sm-10 offset-sm-1 -->
-
+    <div id="frame" class="col-md-12 col-sm-10 offset-sm-1">
       <div class="row my-4">
         <h4 class="col title">Extract Semantics from GANs</h4>
       </div>
@@ -71,12 +70,23 @@
             </ul>
           </div>
         </div>
-
       </div>
-      
+      <!-- colors schemes : FDF8F5,E8CEBF,DDAF94,4F4836,266150 -->
+      <div class="row col-md-12">
+        <div class="row col-md-4 justify-content-center">
+          <label class="option-label">Canvas</label>
+        </div>
+        <div class="row col-md-4 ml-2 justify-content-center">
+          <label class="option-label">Annotations</label>
+        </div>
+        <div class="row col-md-4 ml-2 justify-content-center">
+          <label class="option-label">Validation</label>
+        </div>
+      </div>
+
       <div class="row col-md-12">
         <div class="col-md-4">
-          <div id="image-container" class="row canvas-background my-4 canvas-shape justify-content-center align-items-center">
+          <div id="image-container" class="row canvas-background my-2 canvas-shape justify-content-center align-items-center">
             <div id="spin"></div>
             <canvas id="canvas" width="256" height="256" class="image">
             </canvas>
@@ -86,60 +96,54 @@
             </button>
           </div>
 
-          <div id="option-buttons" class="row container-fluid" hidden>
-            <div class="row d-flex justify-content-around my-4">
-              <button id="clear-image" type="button" class="option-btn">
+          <div id="option-buttons" class="row col-md-12 justify-content-around">
+            <div class="row col-md-12 d-flex">
+              <button id="clear-image" type="button" class="col-md-4 option-btn">
                 <div class="btn-icon clear-icon"></div>
                 <div class="btn-text">Clear Image</div>
               </button>
-              <button id="stroke" type="button" class="option-btn active">
+              <button id="stroke" type="button" class="col-md-4 option-btn active">
                 <div class="btn-icon stroke-icon"></div>
                 <div class="btn-text">Hide Stroke</div>
               </button>
-              <button id="start-new" type="button" class="option-btn">
+              <button id="start-new" type="button" class="col-md-4 option-btn">
                 <div class="btn-icon regen-icon"></div>
                 <div class="btn-text">Generate</div>
               </button>
             </div>
-
-            <div class="row my-4">
+ 
+            <div class="row col-md-12 d-flex my-2">
               <button id="submit" type="button" class="submit-btn col btn">
                 Submit
               </button>
             </div>
-
-            <div class="row d-flex justify-content-around my-4">
-              <button id="download-sketch" type="button" class="download-btn">
-                <div class="btn-text">Download Stroke</div>
-              </button>
-              <button id="download-image" type="button" class="download-btn">
-                <div class="btn-text">Download Image</div>
-              </button>
-            </div>
-
-            <div class="row d-flex justify-content-around my-4">
-              <button id="download-doodle" type="button" class="download-btn">
-                <div class="btn-text">Download Doodle</div>
-              </button>
-              <button id="download-label" type="button" class="download-btn">
-                <div class="btn-text">Download Label</div>
-              </button>
-            </div>
-
           </div>
+        </div>
 
-          <div class="row d-flex justify-content-around my-4">
+        <div class="row col-md-4 ml-2">
+          <div id="ann-panel" class="row col-md-12 annpanel-background my-2">
+          </div>
+          <div class="row col-md-12 d-flex justify-content-around">
+            <button id="col-md-5 download-sketch" type="button" class="download-btn">
+              <div class="btn-text">Download Label</div>
+            </button>
+            <button id="col-md-5 offset-md-1 download-image" type="button" class="download-btn">
+              <div class="btn-text">Download Image</div>
+            </button>
+            <!-- TODO: update the demo
             <button id="link-demo" type="button" class="download-btn">
               <a class="btn-text" target="_blank" href="https://github.com/thu-fit/NeuralPainterDemo">Demo Collections</a>
             </button>
             <button id="link-sample" type="button" class="download-btn">
               <a class="btn-text" target="_blank" href="{% static 'media/simple_np.mp4' %}">Simple Demo</a>
             </button>
+            -->
           </div>
         </div>
-
-        <div class="col-md-8 box">
-          Training
+        
+        <div class="row col-md-4 ml-2">
+          <div id="val-panel" class="row my-2 col-md-12 valpanel-background">
+          </div>
         </div>
       </div>
     </div>

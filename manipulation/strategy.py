@@ -10,9 +10,8 @@ class EditStrategy(object):
                optimizer='adam',
                n_iter=100,
                base_lr=0.01):
-    self.G = G.net
-    self.num_layers = G.net.num_layers
-    self.G_name = G.model_name
+    self.G = G
+    self.num_layers = G.num_layers
     self.n_iter = n_iter
     self.latent_strategy = latent_strategy
     self.optimizer_type = {"adam" : torch.optim.Adam}[optimizer]
@@ -34,18 +33,17 @@ class EditStrategy(object):
       in_type : z, or zs
       out_type : zs, trunc-wp, notrunc-wp
     """
-    if latent_type == "z":
+    if in_type == "z":
       assert len(z.shape) == 2
       zs = z.repeat(G.num_layers, 1)
-    elif latent_type == "zs":
-      zs = zs.view(-1, zs.shape[-1]) # flatten
+    elif in_type == "zs":
+      zs = z.view(-1, z.shape[-1]) # flatten
     if out_type == "zs":
       return zs
     wp = G.mapping(zs)
     if out_type == "trunc-wp":
       wp = torch.stack([G.truncation(w)[0] for w in wp])
-      print(wp.shape)
-    return wp
+    return wp.view(-1, G.num_layers, wp.shape[-1])
 
 
   def setup(self, z_init):
@@ -62,10 +60,11 @@ class EditStrategy(object):
         del self.z0
         del self.zs
         del self.optims
+
       if list(z_init.shape) == [1, 512]:
         self.z0 = z_init.repeat(self.num_layers, 1).cuda()
-      elif len(z_init.shape) == 2:
-        self.z0 = z_init.cuda()
+      elif len(z_init.shape) == 3:
+        self.z0 = z_init[0].cuda()
       # each item in self.zs is of shape (512,)
       self.zs = [self.z0[i].clone().detach().requires_grad_(True)
         for i in range(self.z0.shape[0])]
@@ -109,6 +108,6 @@ class EditStrategy(object):
     Returns a function get_lr(layer_idx).
     """
     funcs = {
-      "stylegan2_ffhq" : EditStrategy.get_lr_ffhq,
-      "stylegan2_bedroom" : EditStrategy.get_lr_bedroom}
-    return lambda i : funcs[self.G_name](i, self.base_lr)
+      18 : EditStrategy.get_lr_ffhq,
+      14 : EditStrategy.get_lr_bedroom}
+    return lambda i : funcs[self.G.num_layers](i, self.base_lr)

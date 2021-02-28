@@ -28,7 +28,7 @@
 
 <body>
   <div class="container-fluid">
-    <div id="frame" class="col-md-12 col-sm-10 offset-sm-1">
+    <div id="frame" class="col-md-10 col-sm-10 offset-sm-1 offset-md-1">
 
       <div class="row my-4">
         <h4 class="col title">Image Edit</h4>
@@ -76,7 +76,7 @@
           <label class="option-label">GAN Model</label>
           <div class="dropdown">
             <button type="button" class="model-btn d-flex align-items-center ml-1" id="model-drop-menu" aria-haspopup="true" data-toggle="dropdown">
-              <span id="model-label">SegGAN (1024px)</span>
+              <span id="model-label">Face</span>
               <div class="caret ml-2"></div>
             </button>
             <ul class="dropdown-menu model-menu" role="menu" aria-labelledby="model-drop-menu" id="model-menu">
@@ -89,12 +89,12 @@
       <div class="row canvas-background my-4">
         <div id="spin"></div>
         <div id="image-container" class="row col-md-6">
-          <canvas id="canvas" width="512" height="512" class="image">
+          <canvas id="canvas" width="464" height="464" class="image">
           </canvas>
           <img id="image" width="" height="" src="" class="image" hidden/>
         </div>
         <div id="label-container" class="row col-md-6">
-          <canvas id="label-canvas" width="512" height="512" class="image">
+          <canvas id="label-canvas" width="464" height="464" class="image">
           </canvas>
           <img id="label" width="" height="" src="" class="image" hidden/>
         </div>
@@ -129,9 +129,6 @@
           </button>
         </div>
         <div class="row d-flex justify-content-around my-4">
-          <button id="extra-args" type="button" class="download-btn" hidden>
-            <div class="btn-text">Add Extra Arguments</div>
-          </button>
           <textarea id="args-text" rows="4" cols="50" hidden>
             //Enter in json format
           </textarea>

@@ -86,6 +86,8 @@ def imwrite(fpath, image, format="RGB"):
     ext = "JPEG"
   elif ".png" in fpath:
     ext = "PNG"
+  else:
+    print(f"!> Extension not found!")
   with open(os.path.join(fpath), "wb") as f:
     Image.fromarray(image.astype("uint8")).convert(format).save(f, format=ext)
 

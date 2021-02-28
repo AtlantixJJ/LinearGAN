@@ -208,6 +208,7 @@ function download(data, filename) {
 }
 
 function canvas_auto_resize() {
+  console.log("canvas");
   var x = document.getElementById('image-container');
   var h = x.clientHeight;
   var w = x.clientWidth;
@@ -216,6 +217,10 @@ function canvas_auto_resize() {
   x = document.getElementById('image');
   x.width = size;
   x.height = size;
+  x = document.getElementById('val-panel');
+  x.setAttribute("style", "height:" + size + "px");
+  x = document.getElementById('ann-panel');
+  x.setAttribute("style", "height:" + size + "px");
 }
 
 $(document).ready(function () {

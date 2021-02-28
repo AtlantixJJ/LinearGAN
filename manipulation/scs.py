@@ -81,7 +81,7 @@ class SCS(object):
     res = []
     for i in tqdm(range(tar.shape[0])):
       for j in range(repeat):
-        res.append(SCS.__sseg_se(SE, G.net,
+        res.append(SCS.__sseg_se(SE, G,
           tar[i:i+1].cuda(), n_init, edit_strategy, pred))
     agg = []
     for i in range(len(res[0])):
@@ -99,8 +99,6 @@ if __name__ == "__main__":
   parser.add_argument('--out-dir', type=str, default='results/scs',
     help='The output directory.')
   parser.add_argument('--repeat', type=int, default=10,
-    help='The output directory.')
-  parser.add_argument('--repeat-ind', type=int, default=0,
     help='The output directory.')
   parser.add_argument('--gpu-id', default='0',
     help='Which GPU(s) to use. (default: `0`)')
@@ -124,14 +122,20 @@ if __name__ == "__main__":
   print(f"=> Loading from {args.SE}")
   if "baseline" in args.SE:
     SE_name = args.SE
+    pred = True
   else:
     SE = load_semantic_extractor(args.SE)
     SE.cuda().eval()
-    SE_name = args.SE[args.SE.rfind("/") + 1: args.SE.rfind("LSE")]
+    SE_name = args.SE[args.SE.rfind("/") + 1 : args.SE.rfind(".pth")]
+    pred = False
   print(SE_name)
   G_name = listkey_convert(args.SE,
     ["stylegan2_ffhq", "stylegan2_bedroom", "stylegan2_church"])
-  G = build_generator(G_name)
+  out_name = SE_name if pred else f"{G_name}_{SE_name}"
+  if os.path.exists(f"{args.out_dir}/{out_name}.pth"):
+    print(f"=> Skip {out_name}")
+    exit(0)
+  G = build_generator(G_name).net
   if "ffhq" in G_name:
     image_ids = np.random.RandomState(1116).choice(list(range(2000)), (100,))
     labels = np.stack([imread(f"../datasets/CelebAMask-HQ/CelebAMask-HQ-mask-15/{i}.png")
@@ -143,11 +147,9 @@ if __name__ == "__main__":
     wp = np.load(f"data/trunc_{G_name}/wp.npy")
     wp = torch.from_numpy(wp).float().cuda()
     with torch.no_grad():
-      images = generate_images(G.net, wp)
-      labels = torch.cat([P(img.unsqueeze(0).cuda())[0] for img in images], 0)
-  pred = "baseline" in SE_name
+      images = generate_images(G, wp)
+      labels = torch.cat([P(img.unsqueeze(0).cuda()) for img in images], 0)
   P_ = P if pred else SE
-  out_name = f"{G_name}_{SE_name}_repeat{args.repeat_ind}"
   if pred:
     out_name = SE_name
   z, wp = SCS.sseg_se(P_, G, labels,

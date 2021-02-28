@@ -74,22 +74,21 @@ def generate_image_given_stroke(request):
         print(f"!> Model not exist {model}")
         return HttpResponse('{}')
 
-      imageStrokeData = b64decode(form_data['image_stroke'].split(',')[1])
-      labelStrokeData = b64decode(form_data['label_stroke'].split(',')[1])
-      latent = restore_from_session(sess)
+      image_stroke = b64decode(form_data['image_stroke'].split(',')[1])
+      label_stroke = b64decode(form_data['label_stroke'].split(',')[1])
+      zs = restore_from_session(sess)
 
-      imageStroke = Image.open(BytesIO(imageStrokeData))
-      labelStroke = Image.open(BytesIO(labelStrokeData))
-      # TODO: hard coded for stylegan
-      imageStroke, imageMask = api.stroke2array(imageStroke)
-      labelStroke, labelMask = api.stroke2array(labelStroke)
+      image_stroke = Image.open(BytesIO(image_stroke))
+      label_stroke = Image.open(BytesIO(label_stroke))
+      image_stroke, image_mask = api.stroke2array(image_stroke)
+      label_stroke, label_mask = api.stroke2array(label_stroke)
 
-      image, label, latent = editor.generate_image_given_stroke(
-        model, latent,
-        imageStroke, imageMask,
-        labelStroke, labelMask)
-      save_to_session(sess, latent)
-      return response(image, label)
+      image, label, zs = editor.generate_image_given_stroke(
+        model, zs,
+        image_stroke, image_mask,
+        label_stroke, label_mask)
+      save_to_session(sess, zs)
+      return response_image_label(image, label)
     except Exception:
       print("!> Exception:")
       traceback.print_exc()

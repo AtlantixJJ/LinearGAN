@@ -7,7 +7,7 @@
   font-size: 44pt;
   font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva,
     Verdana, sans-serif;
-  color: rgb(179, 126, 54);
+  color: #DDAF94;
 }
 .dropdown {
   display: inline-block;
@@ -17,6 +17,7 @@
   font-weight: bold;
   font-size: 18pt;
   margin: 0;
+  color: #4F4846;
 }
 .dropdown-menu {
   border: none;
@@ -31,12 +32,13 @@
   border: none;
   outline: none;
   border-radius: 15px;
-  background-color: #999;
+  background-color: #DDAF94;
   cursor: pointer;
   padding: 0;
 }
 .width-label {
-  color: white;
+  color: #266150;
+  opacity: 0.5;
   font-size: 15pt;
   font-weight: lighter;
   text-align: center;
@@ -66,7 +68,7 @@
 }
 #slider .noUi-handle {
   margin-left: -2px;
-  background-color: rgb(245, 200, 85);
+  background-color: #DDAF94;
   box-shadow: 2px 2px 8px 0px rgba(0, 0, 0, 0.2);
   width: 24px;
   height: 24px;
@@ -211,7 +213,17 @@
 }
 .canvas-background {
   position: relative;
-  background-color: rgb(255, 242, 225);
+  background-color: #E8CEBF;
+  border-radius: 10px;
+}
+.valpanel-background {
+  position: relative;
+  background-color: #266150;
+  border-radius: 10px;
+}
+.annpanel-background {
+  position: relative;
+  background-color: #DDAF94;
   border-radius: 10px;
 }
 .option-btn,
@@ -231,14 +243,14 @@
   margin: 0 auto 10px auto;
 }
 .btn-text {
-  color: #666;
+  color: #4F4846;
   font-size: 11pt;
   font-weight: lighter;
   text-align: center;
 }
 .option-btn:hover .btn-text,
 .btn-text:hover {
-  color: rgb(245, 166, 35);
+  color: #DDAF94;
 }
 .stroke-icon {
   background-image: url('../img/ic_undisplay.png');
@@ -269,14 +281,14 @@
 }
 .submit-btn {
   height: 60px;
-  background-color: rgb(245, 166, 35);
+  background-color: #DDAF94;
   border-radius: 30px;
   font-size: 18pt;
   font-weight: bold;
   margin: 0 auto;
 }
 .submit-btn:hover {
-  background-color: rgb(255, 235, 88);
+  background-color: #E8CEBF;
   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.19);
   -webkit-transition: background-color 0.3s, color 0.15s, box-shadow 0.3s, opacity 0.3s;
   transition: background-color 0.3s, color 0.15s, box-shadow 0.3s, opacity 0.3s;

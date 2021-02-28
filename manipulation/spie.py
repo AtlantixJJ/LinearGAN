@@ -10,6 +10,7 @@ from tqdm import tqdm
 import torchvision.utils as vutils
 
 from lib.op import generate_images, bu
+from manipulation.strategy import EditStrategy
 
 
 class ImageEditing(object):
@@ -31,7 +32,7 @@ class ImageEditing(object):
     for i in (range(edit_strategy.n_iter)):
       z, wps = edit_strategy.to_std_form() # (14, 512)
       image, feature = G.synthesis(wps, generate_feature=True)
-      seg = P(feature, size=tar.shape[2], last_only=True)[0][0]
+      seg = P(feature, size=tar.shape[2])[-1]
       celoss = torch.nn.functional.cross_entropy(seg, tar)
       regloss = 1e-3 * ((z-z0) ** 2).sum()
       priorloss = 1e-3 * (z ** 2).sum() / z.shape[0]
@@ -105,7 +106,7 @@ class ImageEditing(object):
       "image" : ImageEditing.__sseg_image_z}[op]
     for i in range(tar.shape[0]):
       res.append(func(
-        P=SE, G=G.net, z=z[i:i+1].float(),
+        P=SE, G=G, z=z[i:i+1].float(),
         tar=tar[i:i+1].long().cuda(),
         tar_mask=tar_mask[i:i+1].float().cuda(),
         edit_strategy=edit_strategy))
@@ -122,20 +123,19 @@ class ImageEditing(object):
       image_stroke : [3, H, W]
       image_mask : [1, H, W]
       label_stroke : [H, W]
-      label_mask : [1, H, W]
+      label_mask : [H, W]
     """
-    print(image_stroke.shape, image_mask.shape, label_stroke.shape, label_mask.shape)
     size = label_mask.shape[1]
     image, feature = G.synthesis(wp, generate_feature=True)
     origin_image = bu(image, size=size).cpu()
     int_label = SE(feature, size=size)[-1].argmax(1).cpu() if SE else None
     ext_label = P(image, size=size) if P else None
 
-    m = label_mask[0]
-    fused_label = ((1 - m) * est_label + m * label_stroke).long()
+    m = label_mask.cpu()
+    fused_label = ((1 - m) * int_label + m * label_stroke.cpu()).long()
 
-    m = image_mask
-    fused_image = (1 - m) * image.cpu() + m * image_stroke
+    m = image_mask.cpu()
+    fused_image = (1 - m) * origin_image + m * image_stroke.cpu()
     return fused_image, fused_label, origin_image, int_label, ext_label
 
   @staticmethod
