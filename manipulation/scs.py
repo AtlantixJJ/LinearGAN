@@ -104,7 +104,7 @@ if __name__ == "__main__":
     help='Which GPU(s) to use. (default: `0`)')
   parser.add_argument('--optimizer', type=str, default="adam",
     help='The optimizer type.')
-  parser.add_argument('--base-lr', type=float, default=0.001,
+  parser.add_argument('--base-lr', type=float, default=0.01,
     help='The base learning rate of optimizer.')
   parser.add_argument('--n-iter', default=50, type=int,
     help='The number of iteration in editing.')

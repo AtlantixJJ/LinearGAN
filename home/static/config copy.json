@@ -1,0 +1,12 @@
+{
+    "collect_data_dir": "data/collect",
+    "models": {
+        "Face": {
+            "model_name" : "stylegan2_ffhq",
+            "gpu" : 0,
+            "out_dim" : 3,
+            "output_size" : 464,
+            "SE" : "predictors/pretrain/stylegan2_ffhq_8shot_LSE.pth"
+        }
+    }
+}
