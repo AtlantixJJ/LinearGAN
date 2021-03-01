@@ -97,7 +97,7 @@ class EditStrategy(object):
   @staticmethod
   def get_lr_bedroom(layer_idx, base_lr=0.01):
     if layer_idx <= 5:
-      return base_lr / 10
+      return base_lr
     elif layer_idx <= 11: # [6-12]
       return base_lr
     else:

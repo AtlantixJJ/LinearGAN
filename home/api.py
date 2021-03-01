@@ -210,7 +210,7 @@ class EditAPI(object):
       latent_strategy="mixwp",
       optimizer='adam',
       n_iter=50,
-      base_lr=0.001)
+      base_lr=0.01)
 
     image, feature = G.synthesis(wp.cuda(), generate_feature=True)
     label = SE(feature)[-1].argmax(1)
