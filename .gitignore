@@ -3,4 +3,5 @@ predictors/pretrain
 expr
 results
 data
+*.sqlite3
 *__pycache__

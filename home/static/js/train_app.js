@@ -22,7 +22,7 @@ var use_args = false; // [deprecated]
 var spinner = new Spinner({ color: '#999' });
 var allModel = [];
 var curModelID = null;
-var category = [];
+var category = ['background'];
 
 var COLORS = [
   'rgb(0, 0, 0)', 'rgb(255, 255, 0)', 'rgb(28, 230, 255)',
@@ -130,14 +130,54 @@ function setLabel(color) {
   $('#category-drop-menu .color-block').css('border', color == 'white' ? 'solid 1px rgba(0, 0, 0, 0.2)' : 'none');
 }
 
+function addCategory() {
+  var mod = document.getElementById('new-cat-mod');
+  var name = document.getElementById('category-name').value;
+  var idx = category.length;
+  if (name.length == 0) return;
+
+  category.push(name);
+
+  document.getElementById('category-menu').removeChild(mod);
+  $('#category-menu').append('\n<li role="presentation">\n' +
+  ' <div style="float:left;width:100%" onclick="setCategory(\'' + 
+  COLORS[idx] + '\')">\n' + 
+  '  <div class="color-block" style="float:left;background-color:' + 
+  COLORS[idx] + ';border:' + colorStyle(COLORS[idx]) + '"/>\n' +
+  '   <div class="semantic-block" >' + 
+      name + '</div>\n</div>\n</li>');
+
+  menuNewCategory();
+}
+
+function colorStyle(color) {
+  return color == 'white' ? 'solid 1px rgba(0, 0, 0, 0.2)' : 'none';
+}
+
+function menuNewCategory() {
+  var next = category.length;
+  $('#category-menu').append(
+    '\n<li role="presentation" id="new-cat-mod">\n' +
+    ' <div style="float:left;width:100%" onclick="addCategory(\'' + 
+          COLORS[next] + '\')">\n' + 
+    '   <div class="color-block" style="float:left;background-color:' + 
+    COLORS[next] + ';border:' + colorStyle(COLORS[next]) + '"/>\n' + 
+    '    <textarea id="category-name" rows="1" cols="16"></textarea>' + 
+    '    <div class="add-block">new</div>\n</div>\n</li>');
+}
+
 function init() {
-  $('#color-menu').append(
-    '\n<li role="presentation">\n  <div onclick="setColor(\'' +
-    COLORS[0] +
-    '\')"\n  >\n    <div class="color-block" style="background-color:' +
-    COLORS[0] + ';border:' +
-    (COLORS[0] == 'white' ? 'solid 1px rgba(0, 0, 0, 0.2)' : 'none') +
-    '"/>\n  </div>\n</li>');
+  category.forEach(function (c, idx) {
+    $('#category-menu').append(
+      '\n<li role="presentation">\n' +
+      ' <div style="float:left;width:100%" onclick="setCategory(\'' + 
+      COLORS[idx] + '\')">\n' + 
+      '  <div class="color-block" style="float:left;background-color:' + 
+      COLORS[idx] + ';border:' + colorStyle(COLORS[idx]) + '"/>\n' +
+      '   <div class="semantic-block" >' + 
+          c + '</div>\n</div>\n</li>');
+  });
+  menuNewCategory();
 
   allModel.forEach(function (model, idx) {
     $('#model-menu').append(
@@ -217,10 +257,10 @@ function canvas_auto_resize() {
   x = document.getElementById('image');
   x.width = size;
   x.height = size;
-  x = document.getElementById('val-panel');
-  x.setAttribute("style", "height:" + size + "px");
-  x = document.getElementById('ann-panel');
-  x.setAttribute("style", "height:" + size + "px");
+  //x = document.getElementById('val-panel');
+  //x.setAttribute("style", "height:" + size + "px");
+  //x = document.getElementById('ann-panel');
+  //x.setAttribute("style", "height:" + size + "px");
 }
 
 $(document).ready(function () {

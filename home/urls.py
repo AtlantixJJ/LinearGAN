@@ -22,5 +22,6 @@ urlpatterns = [
     url(r'^edit$', views.index),
     url(r'^stroke$', views.generate_image_given_stroke),
     url(r'^train/new$', views.train_get_new_image),
+    url(r'^train/ann$', views.add_annotation),
     url(r'^new$', views.generate_new_image),
 ]

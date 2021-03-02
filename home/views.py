@@ -64,6 +64,10 @@ def train(request):
   return res
 
 @csrf_exempt
+def add_annotation(request):
+  pass
+
+@csrf_exempt
 def generate_image_given_stroke(request):
   form_data = request.POST
   sess = request.session

@@ -25,6 +25,19 @@ var imwidth = 256, // image size
     imheight = 256; // image size
 var use_args = false; // [deprecated]
 var spinner = new Spinner({ color: '#999' });
+var painter_colors = [
+  'black',
+  'rgb(208, 2, 27)',
+  'rgb(245, 166, 35)',
+  'rgb(248, 231, 28)',
+  'rgb(139, 87, 42)',
+  'rgb(126, 211, 33)',
+  'white',
+  'rgb(226, 238, 244)',
+  'rgb(226, 178, 213)',
+  'rgb(189, 16, 224)',
+  'rgb(74, 144, 226)',
+  'rgb(80, 227, 194)'];
 
 var FACE_CATEGORY = ['background', 'skin', 'nose', 'eye glasses', 'eye', 'brow', 'ear', 'mouth', 'upper lip', 'lower lip', 'hair', 'hat', 'ear rings', 'neck', 'cloth'];
 var STYLEGAN2_BEDROOM_CATEGORY = ['wall','floor','ceiling','bed','windowpane','table','curtain','painting','lamp','cushion','pillow','flower','light','chandelier','fan','clock'];
@@ -182,7 +195,8 @@ function onChooseFile(e) {
 }
 
 function init_menu() {
-  category_colors.forEach(function (color) {
+  // TODO: this need to be fixed to painter color
+  painter_colors.forEach(function (color) {
     $('#color-menu').append(
       '\n<li role="presentation">\n  <div onclick="setColor(\'' +
       color +
@@ -195,9 +209,11 @@ function init_menu() {
   category_colors.forEach(function (color, idx) {
     $('#category-menu').append(
       '\n<li role="presentation">\n' +
-      ' <div style="float:left;width:100%" onclick="setCategory(\'' +color + '\')">\n' + 
-      '   <div class="color-block" style="float:left;background-color:' + color + 
-      ';border:' + (color == 'white' ? 'solid 1px rgba(0, 0, 0, 0.2)' : 'none') + '"/>\n' +
+      ' <div style="float:left;width:100%" onclick="setCategory(\'' + 
+      color + '\')">\n' + 
+      '   <div class="color-block" style="float:left;background-color:' + 
+      color + ';border:' + 
+      (color == 'white' ? 'solid 1px rgba(0, 0, 0, 0.2)' : 'none') + '"/>\n' +
       '   <div class="semantic-block" >' + 
       category[idx] + '</div>\n</div>\n</li>');
   });

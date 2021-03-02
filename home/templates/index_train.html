@@ -76,7 +76,7 @@
         <div class="row col-md-4 justify-content-center">
           <label class="option-label">Canvas</label>
         </div>
-        <div class="row col-md-4 ml-2 justify-content-center">
+        <div class="row col-md-4 ml-3 justify-content-center">
           <label class="option-label">Annotations</label>
         </div>
         <div class="row col-md-4 ml-2 justify-content-center">
@@ -100,28 +100,22 @@
             <div class="row col-md-12 d-flex">
               <button id="clear-image" type="button" class="col-md-4 option-btn">
                 <div class="btn-icon clear-icon"></div>
-                <div class="btn-text">Clear Image</div>
+                <div class="btn-text">Clear</div>
               </button>
               <button id="stroke" type="button" class="col-md-4 option-btn active">
                 <div class="btn-icon stroke-icon"></div>
-                <div class="btn-text">Hide Stroke</div>
+                <div class="btn-text">Hide</div>
               </button>
               <button id="start-new" type="button" class="col-md-4 option-btn">
                 <div class="btn-icon regen-icon"></div>
                 <div class="btn-text">Generate</div>
               </button>
             </div>
- 
-            <div class="row col-md-12 d-flex my-2">
-              <button id="submit" type="button" class="submit-btn col btn">
-                Submit
-              </button>
-            </div>
           </div>
         </div>
 
-        <div class="row col-md-4 ml-2">
-          <div id="ann-panel" class="row col-md-12 annpanel-background my-2">
+        <div class="row col-md-4 ml-3">
+          <div id="ann-panel" class="row col-md-12 canvas-background my-2 canvas-shape">
           </div>
           <div class="row col-md-12 d-flex justify-content-around">
             <button id="col-md-5 download-sketch" type="button" class="download-btn">
@@ -141,9 +135,27 @@
           </div>
         </div>
         
-        <div class="row col-md-4 ml-2">
-          <div id="val-panel" class="row my-2 col-md-12 valpanel-background">
+        <div class="row col-md-4 ml-1">
+          <div id="val-panel" class="row my-2 col-md-12 canvas-background canvas-shape">
           </div>
+        </div>
+      </div>
+
+      <div class="row col-md-12">
+        <div class="row col-md-4 my-2 ml-1 justify-content-center">
+          <button id="ann" type="button" class="submit-btn col btn">
+            Annotate
+          </button>
+        </div>
+        <div class="row col-md-4 ml-2 my-2 justify-content-center">
+          <button id="train-btn" type="button" class="submit-btn col btn">
+            Train
+          </button>
+        </div>
+        <div class="row col-md-4 ml-2 my-2 justify-content-center">
+          <button id="val-btn" type="button" class="submit-btn col btn">
+            Validate
+          </button>
         </div>
       </div>
     </div>

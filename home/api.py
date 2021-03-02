@@ -14,7 +14,7 @@ from models.semantic_extractor import LSE, SEFewShotLearner
 from manipulation.spie import ImageEditing
 from manipulation.strategy import EditStrategy
 
-"""
+
 class AddDataThread(threading.Thread):
   def __init__(self, training_thread, f, l, lm):
     self.training_thread = training_thread
@@ -72,7 +72,6 @@ class TrainingThread(threading.Thread):
       self.lock.acquire()
       self.learner.training_step(None, i)
       self.lock.release()
-"""
 
 
 def create_fewshot_LSE(G, n_class=9):
@@ -107,8 +106,6 @@ class TrainAPI(object):
     image, feature = G.synthesis(wp, generate_feature=True)
     z_s = to_serialized_tensor(z)
     image = torch2image(image).astype("uint8")[0]
-    #empty_label_viz = np.zeros_like(image)
-    #empty_label_viz.fill(255)
     print("=> [TrainerAPI] done")
     return image, z_s
 
