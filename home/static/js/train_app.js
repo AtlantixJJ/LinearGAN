@@ -15,6 +15,7 @@ function readTextFile(file, callback) {
 var annotator = null; // canvas manager
 var loading = false; // the image is loading (waiting response)
 var image = null; // image data
+var images = [], anns = [];
 var config = null; // config file
 var imwidth = 256, // image size
     imheight = 256; // image size
@@ -83,6 +84,16 @@ function setImage(data) {
   canvas_auto_resize();
 }
 
+function setAnn(data) {
+  setLoading(false);
+  var panel = document.getElementById("annpanel");
+  panel.append('<image src="' + images[-1] + '">');
+  panel.append('<image src="' + anns[-1] + '">');
+  image = data.img;
+  annotator.setHasImage(true);
+  spinner.spin();
+}
+
 function setLoading(isLoading) {
   loading = isLoading;
   annotator.setHasImage(false);
@@ -98,14 +109,17 @@ function setLoading(isLoading) {
   }
 }
 
-function onSubmit() {
+function onAnnotate() {
   if (annotator && !loading) {
     setLoading(true);
+    var ann = annotator.getImageData();
     var formData = {
       model: allModel[curModelID],
-      annotation: annotator.getImageData(),
+      annotation: ann,
     };
-    $.post('stroke', formData, setImage, 'json');
+    images.push(image);
+    anns.push(ann);
+    $.post('train/ann', formData, setAnn, 'json');
   }
 }
 
@@ -221,7 +235,7 @@ function init() {
       'image_' + new Date().format('yyyyMMdd_hhmmss') + '.png');
   });
   $('#clear').click(annotator.clear);
-  $('#submit').click(onSubmit);
+  $('#submit').click(onAnnotate);
   $('#stroke').click(function() {
     var stroke = $('#stroke').hasClass('active');
     if (stroke) {
