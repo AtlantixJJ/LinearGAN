@@ -93,6 +93,33 @@ def add_annotation(request):
   return HttpResponse('{}')
 
 @csrf_exempt
+def get_validation(request):
+  form_data = request.POST
+  sess = request.session
+  if request.method == 'POST' and 'model' in form_data:
+    try:
+      model = form_data['model']
+      if not editor.has_model(model):
+        print(f"!> Model not exist {model}")
+        return HttpResponse('{}')
+
+      image, segviz = trainer.get_validation(model)
+      img_format = '"data:image/png;base64,{img}"'
+      image_str = ",".join([img_format.format(img=image2bytes(img))
+        for img in image])
+      label_str = ",".join([img_format.format(img=image2bytes(img))
+        for img in segviz])
+      json = '{"ok":"true", "images": [%s], "labels": [%s]}'
+      return HttpResponse(json % (image_str, label_str))
+    except Exception:
+      print("!> Exception:")
+      traceback.print_exc()
+      return HttpResponse('{}')
+  print(f"!> Invalid request: {str(form_data.keys())}")
+  return HttpResponse('{}')
+
+
+@csrf_exempt
 def clear_annotation(request):
   pass
 

@@ -54,7 +54,6 @@ var COLORS = [
 var MAX_LINE_WIDTH = 20;
 
 
-
 /*** Set the semanticcategory of the pen. ***/
 function setCategory(color) {
   annotator.setCurrentColor(color);
@@ -93,38 +92,53 @@ function setImage(data) {
   canvas_auto_resize();
 }
 
-/*** Put the annotation onto the panel. ***/
-function setAnn(data) {
-  setLoading(false);
-  var ncols = 3, padding = 10, col = (images.length - 1) % ncols;
-  var panel = document.getElementById("ann-panel");
-  var size = panel.offsetWidth / ncols - padding * (ncols - 1);
+function imageDiv(image, ann, width, padding, overlap) {
   // put images in a div
   var div = document.createElement("div");
-  var s = "position: relative; top: 10px; height: " + size + "px;"
-
-  if (col != 0)
-    s += "left: " + (col * padding) + "px;"
+  var s = "position: relative; top: 10px;";
+  s += "left: " + padding + "px;"
     
   div.setAttribute("style", s);
 
   // original image
   var img = document.createElement('img');
-  img.src = images[images.length - 1];
+  img.src = image;
   img.setAttribute("style", "position: relative;");
-  img.width = size;
-  img.height = size;
-  div.appendChild(img);
-  // annotation
-  var img = document.createElement('img');
-  img.src = anns[anns.length - 1];
-  img.width = size;
-  img.height = size;
-  img.opacity = 0.5;
-  img.setAttribute("style", "position: absolute; left: 0; right: 0;");
+  img.width = width;
   div.appendChild(img);
 
-  panel.appendChild(div);
+  // annotation
+  var img = document.createElement('img');
+  img.src = ann;
+  img.width = width;
+  img.opacity = 0.5;
+  if (overlap)
+    var s = "position: absolute; left: 0; right: 0;";
+  else
+    var s = "position: relative;";
+  img.setAttribute("style", s);
+  div.appendChild(img);
+
+  return div;
+}
+
+/*** Put the annotation onto the panel. ***/
+function setAnn() {
+  setLoading(false);
+  var ncols = 3, padding = 10;
+  var panel = document.getElementById("ann-panel");
+  panel.innerHTML = '';
+  var size = panel.offsetWidth / ncols - padding * (ncols - 1);
+
+  for (var i = 0; i < images.length; i ++) {
+    var col = i % ncols;
+    panel.appendChild(imageDiv(
+      images[images.length - 1],
+      anns[anns.length - 1],
+      size,
+      col * padding,
+      true));
+  }
   annotator.setHasImage(true);
   spinner.spin();
 }
@@ -165,6 +179,31 @@ function onTrain() {
 
 }
 
+function setValidation(data) {
+  console.log(data);
+  var ncols = 4, ngroups = 2, padding = 10;
+  var panel = document.getElementById("val-panel");
+  panel.innerHTML = '';
+  var size = panel.offsetWidth / ncols - padding;
+  for (var i = 0; i < data.images.length; i ++) {
+    var col = i % ngroups;
+    panel.appendChild(imageDiv(
+      data.images[i],
+      data.labels[i],
+      size,
+      col * padding,
+      false));
+  }
+}
+
+function onValidate() {
+  $.post(
+    'train/val',
+    {model : allModel[curModelID]},
+    setValidation,
+    'json');
+}
+
 /*** Generate a new image. ***/
 function onStartNew() {
   if (loading) return;
@@ -185,9 +224,9 @@ function onStart() {
 /*** Remove all the image and annotations in the panel. ***/
 function onClearAnn() {
   // send a message to the server
-  $.get('train/clear');
-
+  $.post('train/clear', {model : allModel[curModelID]});
 }
+
 /*** The user add a new category for labeling. ***/
 function addCategory() {
   var mod = document.getElementById('new-cat-mod');
@@ -290,6 +329,7 @@ function init() {
   $('#clear-ann').click(onClearAnn);
   $('#ann-btn').click(onAnnotate);
   $('#train-btn').click(onTrain);
+  $('#val-btn').click(onValidate);
 
   $('#stroke').click(function() {
     var stroke = $('#stroke').hasClass('active');

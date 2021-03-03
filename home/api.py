@@ -75,16 +75,18 @@ class TrainingThread(threading.Thread):
       self.running = False
       self.lock.release()
     elif cmd == "val":
-      if not self.running:
-        return
       self.lock.acquire()
-      for _ in range(2):
+      images = []
+      segvizs = []
+      for _ in range(6):
         z = torch.randn(1, 512).cuda()
-        image, segs = self.learner(z)
+        with torch.no_grad():
+          image, segs = self.learner(z)
         seg = bu(segs[-1], 128).argmax(1)
-        image = bu(image, 128)
+        segvizs.append(segviz_numpy(seg.detach().cpu().numpy()))
+        images.append(torch2image(bu(image, 128)).astype("uint8"))
       self.lock.release()
-      return image, seg
+      return np.concatenate(images), np.stack(segvizs)
 
   def run(self):
     self._check_has_data()
@@ -136,6 +138,15 @@ class TrainAPI(object):
     image = torch2image(image).astype("uint8")[0]
     print("=> [TrainerAPI] done")
     return image, zs
+  
+  def get_validation(self, model_name):
+    print("=> [TrainerAPI] validate")
+    G = self.Gs[model_name]
+    SE = self.SE[model_name]
+    train_thread = self.training_thread[model_name]
+    image, segviz = train_thread.send_command("val")
+    print("=> [TrainerAPI] done")
+    return image, segviz
 
   def add_annotation(self, model_name, zs, ann, ann_mask):
     # select model-specific data

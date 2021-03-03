@@ -18,11 +18,12 @@ from django.contrib import admin
 from . import views
 
 urlpatterns = [
-    url(r'^train$', views.train),
     url(r'^edit$', views.index),
-    url(r'^stroke$', views.generate_image_given_stroke),
+    url(r'^edit/stroke$', views.generate_image_given_stroke),
+    url(r'^edit/new$', views.generate_new_image),
+    url(r'^train$', views.train),
     url(r'^train/new$', views.train_get_new_image),
     url(r'^train/ann$', views.add_annotation),
     url(r'^train/clear$', views.clear_annotation),
-    url(r'^new$', views.generate_new_image),
+    url(r'^train/val$', views.get_validation),
 ]

@@ -158,7 +158,7 @@ function onSubmit() {
       //latent: latent,
       //noise: noise
     };
-    $.post('stroke', formData, setImage, 'json');
+    $.post('edit/stroke', formData, setImage, 'json');
   }
 }
 
@@ -167,7 +167,7 @@ function onStartNew() {
   setLoading(true);
   graph.clear();
   labelgraph.clear();
-  $.post('new', { model: MODEL_NAMES[currentModel] }, setImage, 'json');
+  $.post('edit/new', { model: MODEL_NAMES[currentModel] }, setImage, 'json');
 }
 
 function onStart() {
