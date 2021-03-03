@@ -96,13 +96,35 @@ function setImage(data) {
 /*** Put the annotation onto the panel. ***/
 function setAnn(data) {
   setLoading(false);
-  var panel = document.getElementById("annpanel");
+  var ncols = 3, padding = 10, col = (images.length - 1) % ncols;
+  var panel = document.getElementById("ann-panel");
+  var size = panel.offsetWidth / ncols - padding * (ncols - 1);
+  // put images in a div
+  var div = document.createElement("div");
+  var s = "position: relative; top: 10px; height: " + size + "px;"
+
+  if (col != 0)
+    s += "left: " + (col * padding) + "px;"
+    
+  div.setAttribute("style", s);
+
+  // original image
   var img = document.createElement('img');
-  img.src = images[-1].src;
-  panel.appendChild(img);
+  img.src = images[images.length - 1];
+  img.setAttribute("style", "position: relative;");
+  img.width = size;
+  img.height = size;
+  div.appendChild(img);
+  // annotation
   var img = document.createElement('img');
-  img.src = anns[-1].src;
-  panel.appendChild(img);
+  img.src = anns[anns.length - 1];
+  img.width = size;
+  img.height = size;
+  img.opacity = 0.5;
+  img.setAttribute("style", "position: absolute; left: 0; right: 0;");
+  div.appendChild(img);
+
+  panel.appendChild(div);
   annotator.setHasImage(true);
   spinner.spin();
 }
@@ -125,6 +147,7 @@ function setLoading(isLoading) {
 
 /*** Upload the annotation to the server. ***/
 function onAnnotate() {
+  console.log("on annotate");
   if (annotator && !loading) {
     setLoading(true);
     var ann = annotator.getImageData();
@@ -136,6 +159,10 @@ function onAnnotate() {
     anns.push(ann);
     $.post('train/ann', formData, setAnn, 'json');
   }
+}
+
+function onTrain() {
+
 }
 
 /*** Generate a new image. ***/
@@ -155,6 +182,12 @@ function onStart() {
   $('#start').prop('hidden', true);
 }
 
+/*** Remove all the image and annotations in the panel. ***/
+function onClearAnn() {
+  // send a message to the server
+  $.get('train/clear');
+
+}
 /*** The user add a new category for labeling. ***/
 function addCategory() {
   var mod = document.getElementById('new-cat-mod');
@@ -240,6 +273,7 @@ function init() {
 
   setLineWidth(MAX_LINE_WIDTH / 2);
 
+  /*
   $('#download-sketch').click(function () {
     download(
       annotator.getImageData(),
@@ -250,9 +284,12 @@ function init() {
       image,
       'image_' + new Date().format('yyyyMMdd_hhmmss') + '.png');
   });
+  */
+
   $('#clear').click(annotator.clear);
-  $('#ann').click(onAnnotate);
-  $('#train').click(onTrain);
+  $('#clear-ann').click(onClearAnn);
+  $('#ann-btn').click(onAnnotate);
+  $('#train-btn').click(onTrain);
 
   $('#stroke').click(function() {
     var stroke = $('#stroke').hasClass('active');

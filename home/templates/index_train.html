@@ -116,14 +116,11 @@
 
         <div class="row col-md-4 ml-3">
           <div id="ann-panel" class="row col-md-12 canvas-background my-2 canvas-shape">
-            <div id="annpanel"></div>
           </div>
           <div class="row col-md-12 d-flex justify-content-around">
-            <button id="col-md-5 download-sketch" type="button" class="download-btn">
-              <div class="btn-text">Download Label</div>
-            </button>
-            <button id="col-md-5 offset-md-1 download-image" type="button" class="download-btn">
-              <div class="btn-text">Download Image</div>
+            <button id="clear-ann" type="button" class="col-md-4 option-btn">
+              <div class="btn-icon clear-icon"></div>
+              <div class="btn-text">Clear All</div>
             </button>
             <!-- TODO: update the demo
             <button id="link-demo" type="button" class="download-btn">
@@ -144,11 +141,11 @@
 
       <div class="row col-md-12">
         <div class="row col-md-4 my-2 ml-1 justify-content-center">
-          <button id="ann" type="button" class="submit-btn col btn">
+          <button id="ann-btn" type="button" class="submit-btn col btn">
             Annotate
           </button>
         </div>
-        <div class="row col-md-4 ml-2 my-2 justify-content-center">
+        <div class="row col-md-4 ml-2 my-2">
           <button id="train-btn" type="button" class="submit-btn col btn">
             Train
           </button>

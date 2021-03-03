@@ -17,6 +17,7 @@ from manipulation.strategy import EditStrategy
 
 class AddDataThread(threading.Thread):
   def __init__(self, training_thread, f, l, lm):
+    threading.Thread.__init__(self)
     self.training_thread = training_thread
     self.f = f
     self.l = l
@@ -97,6 +98,7 @@ class TrainingThread(threading.Thread):
       self.lock.release()
     print("=> Training thread ended")
 
+
 def create_fewshot_LSE(G, n_class=9):
   """Create a LSE model for fewshot learning purpose."""
   with torch.no_grad():
@@ -113,7 +115,7 @@ class TrainAPI(object):
     self.Gs = MA.Gs # G
     self.SE = MA.SE_new # LSE
     self.SELeaner = MA.SELearner # LSE Learner
-    self.training_thread = {k : TrainingThread(v) for k, v in self.SELeaner}
+    self.training_thread = {k : TrainingThread(v) for k, v in self.SELeaner.items()}
     self.data_dir = MA.data_dir
 
   def reset_train_model(self, model_name):
@@ -127,16 +129,17 @@ class TrainAPI(object):
     print("=> [TrainerAPI] generate new image")
     G = self.Gs[model_name]
     z = torch.randn(1, 512).cuda()
+    zs = z.repeat(G.num_layers, 1) # use mixwp
     wp = G.mapping(z).unsqueeze(1).repeat(1, G.num_layers, 1)
     image, feature = G.synthesis(wp, generate_feature=True)
-    z_s = to_serialized_tensor(z)
+    zs = zs.detach().cpu().view(-1).numpy().tolist()
     image = torch2image(image).astype("uint8")[0]
     print("=> [TrainerAPI] done")
-    return image, z_s
+    return image, zs
 
   def add_annotation(self, model_name, zs, ann, ann_mask):
     # select model-specific data
-    G = self.models[model_name]
+    G = self.Gs[model_name]
     SE = self.SE[model_name]
     train_thread = self.training_thread[model_name]
 
@@ -149,6 +152,7 @@ class TrainAPI(object):
     imwrite(f"{p}_ann-mask.png", ann_mask)
 
     # preprocess data
+    zs = torch.from_numpy(zs).float().cuda()
     size = self.MA.models_config[model_name]["output_size"]
     wp = EditStrategy.z_to_wp(G, zs, in_type="zs", out_type="notrunc-wp")
     image, feature = G.synthesis(wp, generate_feature=True)

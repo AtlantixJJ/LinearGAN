@@ -13,7 +13,7 @@ from tqdm import tqdm
 from datetime import datetime
 
 from lib.visualizer import get_label_color
-  
+
 
 def to_serialized_tensor(x, dtype="float32"):
   """Deprecated."""
@@ -62,8 +62,8 @@ def color_mask(image, color):
   return r & g & b
 
 
-def preprocess_label(arr, n_class, size=(512, 512)):
-  x = torch.from_numpy(imresize(arr, size))
+def preprocess_label(arr, n_class, size=512):
+  x = torch.from_numpy(imresize(arr, (size, size)))
   t = torch.zeros(size, size)
   for i in range(n_class):
     c = get_label_color(i)

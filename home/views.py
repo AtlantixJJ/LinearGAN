@@ -65,6 +65,7 @@ def train(request):
 
 @csrf_exempt
 def add_annotation(request):
+  print("Add annotation")
   form_data = request.POST
   sess = request.session
   if request.method == 'POST' and 'ann' in form_data:
@@ -90,6 +91,10 @@ def add_annotation(request):
       return HttpResponse('{}')
   print(f"!> Invalid request: {str(form_data.keys())}")
   return HttpResponse('{}')
+
+@csrf_exempt
+def clear_annotation(request):
+  pass
 
 @csrf_exempt
 def generate_image_given_stroke(request):
