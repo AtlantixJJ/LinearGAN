@@ -103,7 +103,8 @@ def ctrl_training(request):
       cmd = model['action']
       flag = trainer.send_command(model, cmd)
       flag = '"true"' if flag else '"false"'
-      return HttpResponse('{"status" : %s}' % flag)
+      json = '{"action": "%s", "status" : %s}'
+      return HttpResponse(json % (cmd, flag))
     except Exception:
       print("!> Exception:")
       traceback.print_exc()

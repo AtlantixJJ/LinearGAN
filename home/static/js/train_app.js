@@ -31,22 +31,7 @@ Date.prototype.format = function (format) {
   return format;
 };
 
-
-var annotator = null; // canvas manager
-var image_loading = false; // the image is loading (waiting response)
-var image = null; // image data
-var images = [], anns = [];
-var config = null; // config file
-var imwidth = 256, // image size
-    imheight = 256; // image size
-var use_args = false; // [deprecated]
-var image_spinner = new Spinner({ color: '#999' }),
-    val_spinner = new Spinner({ color: '#999' });
-
-var allModel = [];
-var curModelID = null;
-var category = ['background'];
-
+// constants
 var COLORS = [
   'rgb(0, 0, 0)', 'rgb(255, 255, 0)', 'rgb(28, 230, 255)',
   'rgb(255, 52, 255)', 'rgb(255, 74, 70)', 'rgb(0, 137, 65)',
@@ -54,6 +39,27 @@ var COLORS = [
   'rgb(122, 73, 0)', 'rgb(0, 0, 166)', 'rgb(99, 255, 172)',
   'rgb(183, 151, 98)', 'rgb(0, 77, 67)', 'rgb(143, 176, 255)'];
 var MAX_LINE_WIDTH = 20;
+
+// widgets
+var annotator = null; // canvas manager
+var image_spinner = new Spinner({ color: '#999' }),
+    val_spinner = new Spinner({ color: '#999' });
+
+// global states
+var image_loading = false; // the image is loading (waiting response)
+var training_started = false;
+
+// global data
+var image = null; // image data
+var images = [], anns = [];
+var config = null; // config file
+var allModel = [];
+var curModelID = null;
+var category = ['background'];
+
+
+
+
 
 
 /*** Set the semanticcategory of the pen. ***/
@@ -174,8 +180,36 @@ function onAnnotate() {
   $.post('train/ann', formData, setAnn, 'json');
 }
 
-function onTrain() {
+function checkSuccessful(data) {
+  console.log(data);
+  var x = document.getElementById('train-btn');
+  if (data.status) {
+    if (data.action == "start") {
+      training_started = true;
+      x.innerText = 'Stop Training';
+    } else if (data.action == "stop") {
+      training_started = false;
+      x.innerText = 'Start Training';
+    }
+  }
+}
 
+function setTrainingStatus(started) {
+  $('#train-btn').prop('disabled', started);
+}
+
+function onTrain() {
+  if (training_started == false) {
+    var dic = {
+      model : allModel[curModelID],
+      action : "start"}
+    $.post("train/ctrl", dic, checkSuccessful, 'json');
+  } else if (training_started == true) {
+    var dic = {
+      model : allModel[curModelID],
+      action : "stop"}
+    $.post("train/ctrl", dic, checkSuccessful, 'json');
+  }
 }
 
 function setValidation(data) {
@@ -379,8 +413,6 @@ $(document).ready(function () {
       allModel = Object.keys(config.models);
       curModelID = 0;
       var key = allModel[curModelID];
-      imwidth = config.models[key].output_size;
-      imheight = config.models[key].output_size;
       document.getElementById('model-label').textContent = key;
       annotator = new Graph(document, 'canvas');
       canvas_auto_resize();
