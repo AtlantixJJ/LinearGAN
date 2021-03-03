@@ -26,4 +26,5 @@ urlpatterns = [
     url(r'^train/ann$', views.add_annotation),
     url(r'^train/clear$', views.clear_annotation),
     url(r'^train/val$', views.get_validation),
+    url(r'^train/ctrl$', views.ctrl_training),
 ]

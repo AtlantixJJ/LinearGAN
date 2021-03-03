@@ -33,14 +33,16 @@ Date.prototype.format = function (format) {
 
 
 var annotator = null; // canvas manager
-var loading = false; // the image is loading (waiting response)
+var image_loading = false; // the image is loading (waiting response)
 var image = null; // image data
 var images = [], anns = [];
 var config = null; // config file
 var imwidth = 256, // image size
     imheight = 256; // image size
 var use_args = false; // [deprecated]
-var spinner = new Spinner({ color: '#999' });
+var image_spinner = new Spinner({ color: '#999' }),
+    val_spinner = new Spinner({ color: '#999' });
+
 var allModel = [];
 var curModelID = null;
 var category = ['background'];
@@ -69,7 +71,7 @@ function setLineWidth(width) {
 
 /*** Set the current model. ***/
 function setModel(model) {
-  if (loading) return;
+  if (image_loading) return;
   curModelID = model;
   $('#model-label').text(allModel[model]);
   onStart();
@@ -77,7 +79,7 @@ function setModel(model) {
 
 /*** Set the generated image. ***/
 function setImage(data) {
-  setLoading(false);
+  setImageLoading(false);
   if (!data || !data.ok) return;
 
   if (!image) {
@@ -88,7 +90,7 @@ function setImage(data) {
   $('#image').attr('src', image);
   $('#canvas').css('background-image', 'url(' + image + ')');
   annotator.setHasImage(true);
-  spinner.spin();
+  image_spinner.spin();
   canvas_auto_resize();
 }
 
@@ -124,7 +126,6 @@ function imageDiv(image, ann, width, padding, overlap) {
 
 /*** Put the annotation onto the panel. ***/
 function setAnn() {
-  setLoading(false);
   var ncols = 3, padding = 10;
   var panel = document.getElementById("ann-panel");
   panel.innerHTML = '';
@@ -140,39 +141,37 @@ function setAnn() {
       true));
   }
   annotator.setHasImage(true);
-  spinner.spin();
 }
 
 /*** Set the loading status of image. ***/
-function setLoading(isLoading) {
-  loading = isLoading;
+function setImageLoading(isLoading) {
+  image_loading = isLoading;
   annotator.setHasImage(false);
-  $('#start-new').prop('disabled', loading);
-  $('#submit').prop('disabled', loading);
-  $('#spin').prop('hidden', !loading);
-  if (loading) {
+  $('#start-new').prop('disabled', image_loading);
+  $('#submit').prop('disabled', image_loading);
+  $('#spin').prop('hidden', !image_loading);
+  if (image_loading) {
     $('.image').css('opacity', 0.7);
-    spinner.spin(document.getElementById('spin'));
+    image_spinner.spin(document.getElementById('spin'));
   } else {
     $('.image').css('opacity', 1);
-    spinner.stop();
+    image_spinner.stop();
   }
 }
 
 /*** Upload the annotation to the server. ***/
 function onAnnotate() {
-  console.log("on annotate");
-  if (annotator && !loading) {
-    setLoading(true);
-    var ann = annotator.getImageData();
-    var formData = {
-      model: allModel[curModelID],
-      ann: ann,
-    };
-    images.push(image);
-    anns.push(ann);
-    $.post('train/ann', formData, setAnn, 'json');
-  }
+  if (!annotator)
+    return;
+
+  var ann = annotator.getImageData();
+  var formData = {
+    model: allModel[curModelID],
+    ann: ann,
+  };
+  images.push(image);
+  anns.push(ann);
+  $.post('train/ann', formData, setAnn, 'json');
 }
 
 function onTrain() {
@@ -206,8 +205,8 @@ function onValidate() {
 
 /*** Generate a new image. ***/
 function onStartNew() {
-  if (loading) return;
-  setLoading(true);
+  if (image_loading) return;
+  setImageLoading(true);
   annotator.clear();
   $.post('train/new',
     { model: allModel[curModelID] },

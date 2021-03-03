@@ -68,12 +68,21 @@ class TrainingThread(threading.Thread):
       self.lock.release()
 
   def send_command(self, cmd):
-    if cmd == "stop":
+    if cmd == "start":
+      if self.running:
+        return False
+      self.lock.acquire()
+      self.running = True
+      self.lock.release()
+      self.start()
+      return True
+    elif cmd == "stop":
       if not self.running:
-        return
+        return False
       self.lock.acquire()
       self.running = False
       self.lock.release()
+      return True
     elif cmd == "val":
       self.lock.acquire()
       images = []
@@ -90,7 +99,6 @@ class TrainingThread(threading.Thread):
 
   def run(self):
     self._check_has_data()
-    self.running = True
     print("=> Training thread started")
     for i in range(self.max_iter):
       if not self.running:
@@ -140,6 +148,7 @@ class TrainAPI(object):
     return image, zs
   
   def get_validation(self, model_name):
+    """Return validation images. """
     print("=> [TrainerAPI] validate")
     G = self.Gs[model_name]
     SE = self.SE[model_name]
@@ -148,7 +157,16 @@ class TrainAPI(object):
     print("=> [TrainerAPI] done")
     return image, segviz
 
+  def ctrl_training(self, model_name, command):
+    """Control the training using commands.
+      Args:
+        model_name : The G name.
+        command : [start] -> start training; [stop] -> stop training;
+    """
+    return self.training_thread[model_name].send_command(command)
+
   def add_annotation(self, model_name, zs, ann, ann_mask):
+    """Add annotations."""
     # select model-specific data
     G = self.Gs[model_name]
     SE = self.SE[model_name]
