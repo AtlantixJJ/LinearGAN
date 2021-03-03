@@ -132,10 +132,13 @@ class ImageEditing(object):
     ext_label = P(image, size=size) if P else None
 
     m = label_mask.cpu()
-    fused_label = ((1 - m) * int_label + m * label_stroke.cpu()).long()
+    fused_label = ((1 - m) * int_label + m * label_stroke.cpu()).long() \
+      if label_stroke else None
 
     m = image_mask.cpu()
-    fused_image = (1 - m) * origin_image + m * image_stroke.cpu()
+    fused_image = (1 - m) * origin_image + m * image_stroke.cpu() \
+      if image_stroke else None
+
     return fused_image, fused_label, origin_image, int_label, ext_label
 
   @staticmethod

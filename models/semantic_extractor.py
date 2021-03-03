@@ -53,7 +53,7 @@ class SEFewShotLearner(pl.LightningModule):
         image, feature = self.G(z, generate_feature=True)
     # [[], [], []] (category groups, sery)
     seg = self.model(feature, size=self.resolution) 
-    return seg
+    return image, seg
 
   def training_step(self, batch, batch_idx):
     """
@@ -61,7 +61,7 @@ class SEFewShotLearner(pl.LightningModule):
     """
     idx = batch_idx % self.label.shape[0]
     feature = [f[idx:idx+1].cuda() for f in self.feature]
-    segs = self.model(feature, size=self.resolution)
+    _, segs = self.model(feature, size=self.resolution)
     seg = op.bu(segs[-1], self.label.size(2))
     segloss = self.loss_fn_final(seg, self.label[idx:idx+1])
     return segloss

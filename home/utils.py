@@ -11,10 +11,8 @@ from base64 import b64encode, b64decode
 from skimage import morphology
 from tqdm import tqdm
 from datetime import datetime
-try:
-  import cv2
-except:
-  print("!> No opencv2")
+
+from lib.visualizer import get_label_color
   
 
 def to_serialized_tensor(x, dtype="float32"):
@@ -62,6 +60,15 @@ def color_mask(image, color):
   g = image[:, :, 1] == color[1] #np.abs(image[:, :, 1] - color[1]) < threshold
   b = image[:, :, 2] == color[2] #np.abs(image[:, :, 2] - color[2]) < threshold
   return r & g & b
+
+
+def preprocess_label(arr, n_class, size=(512, 512)):
+  x = torch.from_numpy(imresize(arr, size))
+  t = torch.zeros(size, size)
+  for i in range(n_class):
+    c = get_label_color(i)
+    t[color_mask(x, c)] = i
+  return t.unsqueeze(0).cuda()
 
 
 def preprocess_image(arr, size=(1024, 1024)):

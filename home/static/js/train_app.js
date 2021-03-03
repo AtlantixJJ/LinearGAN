@@ -1,5 +1,6 @@
 'use strict';
 
+/*** Read a text file from disk. ***/
 function readTextFile(file, callback) {
   var rawFile = new XMLHttpRequest();
   rawFile.overrideMimeType("application/json");
@@ -11,6 +12,25 @@ function readTextFile(file, callback) {
   }
   rawFile.send(null);
 }
+
+/*** Format download file name. ***/
+Date.prototype.format = function (format) {
+  var o = {
+    'M+': this.getMonth() + 1, //month
+    'd+': this.getDate(), //day
+    'h+': this.getHours(), //hour
+    'm+': this.getMinutes(), //minute
+    's+': this.getSeconds(), //second
+    'q+': Math.floor((this.getMonth() + 3) / 3), //quarter
+    S: this.getMilliseconds() //millisecond
+  };
+  if (/(y+)/.test(format)) format = format.replace(RegExp.$1, (this.getFullYear() + '').substr(4 - RegExp.$1.length));
+  for (var k in o) {
+    if (new RegExp('(' + k + ')').test(format)) format = format.replace(RegExp.$1, RegExp.$1.length == 1 ? o[k] : ('00' + o[k]).substr(('' + o[k]).length));
+  }
+  return format;
+};
+
 
 var annotator = null; // canvas manager
 var loading = false; // the image is loading (waiting response)
@@ -34,33 +54,21 @@ var COLORS = [
 var MAX_LINE_WIDTH = 20;
 
 
-Date.prototype.format = function (format) {
-  var o = {
-    'M+': this.getMonth() + 1, //month
-    'd+': this.getDate(), //day
-    'h+': this.getHours(), //hour
-    'm+': this.getMinutes(), //minute
-    's+': this.getSeconds(), //second
-    'q+': Math.floor((this.getMonth() + 3) / 3), //quarter
-    S: this.getMilliseconds() //millisecond
-  };
-  if (/(y+)/.test(format)) format = format.replace(RegExp.$1, (this.getFullYear() + '').substr(4 - RegExp.$1.length));
-  for (var k in o) {
-    if (new RegExp('(' + k + ')').test(format)) format = format.replace(RegExp.$1, RegExp.$1.length == 1 ? o[k] : ('00' + o[k]).substr(('' + o[k]).length));
-  }return format;
-};
 
+/*** Set the semanticcategory of the pen. ***/
 function setCategory(color) {
   annotator.setCurrentColor(color);
   $('#category-drop-menu .color-block').css('background-color', color);
   $('#category-drop-menu .color-block').css('border', color == 'white' ? 'solid 1px rgba(0, 0, 0, 0.2)' : 'none');
 }
 
+/*** Set the line width of the pen. ***/
 function setLineWidth(width) {
   annotator.setLineWidth(width * 2);
   $('#width-label').text(width);
 }
 
+/*** Set the current model. ***/
 function setModel(model) {
   if (loading) return;
   curModelID = model;
@@ -68,6 +76,7 @@ function setModel(model) {
   onStart();
 }
 
+/*** Set the generated image. ***/
 function setImage(data) {
   setLoading(false);
   if (!data || !data.ok) return;
@@ -84,16 +93,21 @@ function setImage(data) {
   canvas_auto_resize();
 }
 
+/*** Put the annotation onto the panel. ***/
 function setAnn(data) {
   setLoading(false);
   var panel = document.getElementById("annpanel");
-  panel.append('<image src="' + images[-1] + '">');
-  panel.append('<image src="' + anns[-1] + '">');
-  image = data.img;
+  var img = document.createElement('img');
+  img.src = images[-1].src;
+  panel.appendChild(img);
+  var img = document.createElement('img');
+  img.src = anns[-1].src;
+  panel.appendChild(img);
   annotator.setHasImage(true);
   spinner.spin();
 }
 
+/*** Set the loading status of image. ***/
 function setLoading(isLoading) {
   loading = isLoading;
   annotator.setHasImage(false);
@@ -109,13 +123,14 @@ function setLoading(isLoading) {
   }
 }
 
+/*** Upload the annotation to the server. ***/
 function onAnnotate() {
   if (annotator && !loading) {
     setLoading(true);
     var ann = annotator.getImageData();
     var formData = {
       model: allModel[curModelID],
-      annotation: ann,
+      ann: ann,
     };
     images.push(image);
     anns.push(ann);
@@ -123,6 +138,7 @@ function onAnnotate() {
   }
 }
 
+/*** Generate a new image. ***/
 function onStartNew() {
   if (loading) return;
   setLoading(true);
@@ -133,17 +149,13 @@ function onStartNew() {
   console.log({ model: allModel[curModelID] });
 }
 
+/*** Generate a new image for the first time. ***/
 function onStart() {
   onStartNew();
   $('#start').prop('hidden', true);
 }
 
-function setLabel(color) {
-  annotator.setCurrentColor(color);
-  $('#category-drop-menu .color-block').css('background-color', color);
-  $('#category-drop-menu .color-block').css('border', color == 'white' ? 'solid 1px rgba(0, 0, 0, 0.2)' : 'none');
-}
-
+/*** The user add a new category for labeling. ***/
 function addCategory() {
   var mod = document.getElementById('new-cat-mod');
   var name = document.getElementById('category-name').value;
@@ -164,10 +176,12 @@ function addCategory() {
   menuNewCategory();
 }
 
+/*** A utility function. ***/
 function colorStyle(color) {
   return color == 'white' ? 'solid 1px rgba(0, 0, 0, 0.2)' : 'none';
 }
 
+/*** Add a new category textarea to the menu. ***/
 function menuNewCategory() {
   var next = category.length;
   $('#category-menu').append(
@@ -181,6 +195,7 @@ function menuNewCategory() {
 }
 
 function init() {
+  // Add category menu items
   category.forEach(function (c, idx) {
     $('#category-menu').append(
       '\n<li role="presentation">\n' +
@@ -192,7 +207,9 @@ function init() {
           c + '</div>\n</div>\n</li>');
   });
   menuNewCategory();
+  setCategory(COLORS[0]); // default category
 
+  // Add model menu items
   allModel.forEach(function (model, idx) {
     $('#model-menu').append(
       '<li role="presentation">\n' +
@@ -203,6 +220,7 @@ function init() {
     );
   });
 
+  // Init slider
   var slider = document.getElementById('slider');
   noUiSlider.create(slider, {
     start: MAX_LINE_WIDTH / 2,
@@ -220,8 +238,6 @@ function init() {
     setLineWidth(parseInt(slider.noUiSlider.get()));
   });
 
-  setLabel('black');
-
   setLineWidth(MAX_LINE_WIDTH / 2);
 
   $('#download-sketch').click(function () {
@@ -235,7 +251,9 @@ function init() {
       'image_' + new Date().format('yyyyMMdd_hhmmss') + '.png');
   });
   $('#clear').click(annotator.clear);
-  $('#submit').click(onAnnotate);
+  $('#ann').click(onAnnotate);
+  $('#train').click(onTrain);
+
   $('#stroke').click(function() {
     var stroke = $('#stroke').hasClass('active');
     if (stroke) {

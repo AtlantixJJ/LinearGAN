@@ -7,7 +7,7 @@ import numpy as np
 
 from home.utils import *
 from models.helper import *
-from lib.op import sample_image_feature, torch2image, torch2numpy
+from lib.op import sample_image_feature, torch2image, torch2numpy, bu
 from lib.misc import imwrite
 from lib.visualizer import segviz_numpy, get_label_color
 from models.semantic_extractor import LSE, SEFewShotLearner
@@ -27,8 +27,7 @@ class AddDataThread(threading.Thread):
 
 
 class TrainingThread(threading.Thread):
-  def __init__(self, learner,
-         max_iter=1000):
+  def __init__(self, learner, max_iter=1000):
     threading.Thread.__init__(self)
     self.learner = learner
     self.lock = threading.Lock()
@@ -36,6 +35,7 @@ class TrainingThread(threading.Thread):
     self.features = []
     self.labels = []
     self.labels_mask = []
+    self.running = False
 
   def add_annotation(self, feature, label, label_mask):
     self.lock.acquire()
@@ -49,6 +49,7 @@ class TrainingThread(threading.Thread):
   def reset(self, features=[], labels=[], labels_mask=[]):
     self.lock.acquire()
     self.count = 0
+    self.running = False
     self.features = features
     self.labels = labels
     self.labels_mask = labels_mask
@@ -65,19 +66,41 @@ class TrainingThread(threading.Thread):
         break
       self.lock.release()
 
+  def send_command(self, cmd):
+    if cmd == "stop":
+      if not self.running:
+        return
+      self.lock.acquire()
+      self.running = False
+      self.lock.release()
+    elif cmd == "val":
+      if not self.running:
+        return
+      self.lock.acquire()
+      for _ in range(2):
+        z = torch.randn(1, 512).cuda()
+        image, segs = self.learner(z)
+        seg = bu(segs[-1], 128).argmax(1)
+        image = bu(image, 128)
+      self.lock.release()
+      return image, seg
+
   def run(self):
     self._check_has_data()
-
+    self.running = True
+    print("=> Training thread started")
     for i in range(self.max_iter):
+      if not self.running:
+        break
       self.lock.acquire()
       self.learner.training_step(None, i)
       self.lock.release()
-
+    print("=> Training thread ended")
 
 def create_fewshot_LSE(G, n_class=9):
   """Create a LSE model for fewshot learning purpose."""
   with torch.no_grad():
-    image, features = sample_image_feature(G)
+    _, features = sample_image_feature(G)
   layers = [i for i in range(len(features)) \
     if i % 2 == 1 and features[i].size(3) >= 32]
   dims = [features[i].size(1) for i in layers]
@@ -86,9 +109,11 @@ def create_fewshot_LSE(G, n_class=9):
 
 class TrainAPI(object):
   def __init__(self, MA):
+    self.MA = MA
     self.Gs = MA.Gs # G
     self.SE = MA.SE_new # LSE
     self.SELeaner = MA.SELearner # LSE Learner
+    self.training_thread = {k : TrainingThread(v) for k, v in self.SELeaner}
     self.data_dir = MA.data_dir
 
   def reset_train_model(self, model_name):
@@ -109,28 +134,29 @@ class TrainAPI(object):
     print("=> [TrainerAPI] done")
     return image, z_s
 
-  def add_train_image(self, model_name, z, label_stroke, label_mask):
+  def add_annotation(self, model_name, zs, ann, ann_mask):
+    # select model-specific data
     G = self.models[model_name]
     SE = self.SE[model_name]
-    z = np.fromstring(z, dtype=np.float32).reshape((1, -1))
-    save_npy_with_time(self.data_dir, z, "origin_z")
-    save_image_with_time(self.data_dir, label_stroke, "label_stroke")
-    save_image_with_time(self.data_dir, label_mask, "label_mask")
+    train_thread = self.training_thread[model_name]
 
-    size = self.ma.models_config[model_name]["output_size"]
-    z = torch.from_numpy(z).view(1, 512).cuda()
-    wp = G.mapping(z).unsqueeze(1).repeat(1, G.num_layers, 1)
-    x = torch.from_numpy(imresize(label_stroke, (size, size)))
-    t = torch.zeros(size, size)
-    for i in range(SE.n_class):
-      c = get_label_color(i)
-      t[color_mask(x, c)] = i
-    label_stroke = t.unsqueeze(0).cuda()
-    label_mask = preprocess_mask(label_mask, size).squeeze(1).cuda()
-    with torch.no_grad():
-      image, feature = G.synthesis(wp.cuda(), generate_feature=True)
-    AddDataThread(feature, label_stroke, label_mask).start()
-    return image, label_viz, z
+    # parse and store data
+    zs = np.array(zs, dtype=np.float32).reshape((G.num_layers, -1))
+    time_str = get_time_str()
+    p = f"{self.data_dir}/{time_str}"
+    np.save(f"{p}_origin-zs.npy", zs)
+    imwrite(f"{p}_ann.png", ann)
+    imwrite(f"{p}_ann-mask.png", ann_mask)
+
+    # preprocess data
+    size = self.MA.models_config[model_name]["output_size"]
+    wp = EditStrategy.z_to_wp(G, zs, in_type="zs", out_type="notrunc-wp")
+    image, feature = G.synthesis(wp, generate_feature=True)
+    label_stroke = preprocess_label(ann, SE.n_class, size)
+    label_mask = preprocess_mask(ann_mask, size).squeeze(1).cuda()
+
+    # add data into training thread
+    AddDataThread(train_thread, feature, label_stroke, label_mask).start()
 
 
 class ModelAPI(object):
@@ -190,12 +216,7 @@ class EditAPI(object):
       in_type="zs", out_type="notrunc-wp")
     image_stroke = preprocess_image(image_stroke, size).cuda()
     image_mask = preprocess_mask(image_mask, size).cuda()
-    x = torch.from_numpy(imresize(label_stroke, (size, size)))
-    t = torch.zeros(size, size)
-    for i in range(SE.n_class):
-      c = get_label_color(i)
-      t[color_mask(x, c)] = i
-    label_stroke = t.unsqueeze(0).cuda()
+    label_stroke = preprocess_label(label_stroke, SE.n_class, size)
     label_mask = preprocess_mask(label_mask, size).squeeze(1).cuda()
     _, fused_label, _, int_label, _ = ImageEditing.fuse_stroke(
       G, SE, None, wp,

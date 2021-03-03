@@ -65,7 +65,31 @@ def train(request):
 
 @csrf_exempt
 def add_annotation(request):
-  pass
+  form_data = request.POST
+  sess = request.session
+  if request.method == 'POST' and 'ann' in form_data:
+    try:
+      model = form_data['model']
+      if not editor.has_model(model):
+        print(f"!> Model not exist {model}")
+        return HttpResponse('{}')
+
+      ann = b64decode(form_data['ann'].split(',')[1])
+      zs = restore_from_session(sess)
+
+      ann = Image.open(BytesIO(ann))
+      ann, ann_mask = api.stroke2array(ann)
+
+      trainer.add_annotation(
+        model, zs,
+        ann, ann_mask)
+      return HttpResponse('{}') # no need to return any information
+    except Exception:
+      print("!> Exception:")
+      traceback.print_exc()
+      return HttpResponse('{}')
+  print(f"!> Invalid request: {str(form_data.keys())}")
+  return HttpResponse('{}')
 
 @csrf_exempt
 def generate_image_given_stroke(request):
