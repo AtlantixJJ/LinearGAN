@@ -89,6 +89,21 @@ class SCS(object):
     return agg
 
 
+def read_labels(G_name, G, P):
+  if "ffhq" in G_name:
+    image_ids = np.random.RandomState(1116).choice(list(range(2000)), (100,))
+    labels = np.stack([imread(f"../datasets/CelebAMask-HQ/CelebAMask-HQ-mask-15/{i}.png")
+      for i in image_ids])[:, :, :, 0] # (N, H, W, 3)
+    labels = torch.from_numpy(labels).long()
+  else:
+    wp = np.load(f"data/trunc_{G_name}/wp.npy")
+    wp = torch.from_numpy(wp).float().cuda()
+    with torch.no_grad():
+      images = generate_images(G, wp)
+      labels = torch.cat([P(img.unsqueeze(0).cuda()) for img in images], 0)
+  return labels
+
+
 if __name__ == "__main__":
   import argparse, os
   from lib.misc import imread, listkey_convert, set_cuda_devices
@@ -119,6 +134,7 @@ if __name__ == "__main__":
   from predictors.face_segmenter import FaceSegmenter
   from predictors.scene_segmenter import SceneSegmenter
 
+
   print(f"=> Loading from {args.SE}")
   if "baseline" in args.SE:
     SE_name = args.SE
@@ -136,19 +152,8 @@ if __name__ == "__main__":
     print(f"=> Skip {out_name}")
     exit(0)
   G = build_generator(G_name).net
-  if "ffhq" in G_name:
-    image_ids = np.random.RandomState(1116).choice(list(range(2000)), (100,))
-    labels = np.stack([imread(f"../datasets/CelebAMask-HQ/CelebAMask-HQ-mask-15/{i}.png")
-      for i in image_ids])[:, :, :, 0] # (N, H, W, 3)
-    labels = torch.from_numpy(labels).long()
-    P = FaceSegmenter()
-  else:
-    P = SceneSegmenter(model_name=G_name)
-    wp = np.load(f"data/trunc_{G_name}/wp.npy")
-    wp = torch.from_numpy(wp).float().cuda()
-    with torch.no_grad():
-      images = generate_images(G, wp)
-      labels = torch.cat([P(img.unsqueeze(0).cuda()) for img in images], 0)
+  P = FaceSegmenter() if "ffhq" in G_name else SceneSegmenter(model_name=G_name)
+  labels = read_labels(G_name, G, P)
   P_ = P if pred else SE
   if pred:
     out_name = SE_name

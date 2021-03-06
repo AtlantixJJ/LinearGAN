@@ -67,9 +67,9 @@ def str_table_single(dic, indicate_best=True, T=0):
     s = [method]
     for G in Gs:
       best_ind, best_method, best_val = max_key(idic[G])
-      acc = f"{dic[method][G] * 100:.1f}\\%"
+      acc = f"{dic[method][G] * 100:.1f}"
       comp = (dic[method][G] - best_val) / (best_val + 1e-6) * 100
-      comp = "*" if best_method == method else f"({comp:.1f}\\%)"
+      comp = "*" if best_method == method else f"({comp:.1f})"
       item_str = acc
       if indicate_best:
         item_str = f"{acc} {comp}"
@@ -95,12 +95,12 @@ def str_table_multiple(dic, T=0): # group, G, method
     for ds in dic[group].keys():
       best_ind, best_method, best_val = max_key(dic[group][ds])
       for i, method in enumerate(dic[group][ds].keys()):
-        acc = f"{dic[group][ds][method] * 100:.1f}\\%"
+        acc = f"{dic[group][ds][method] * 100:.1f}"
         comp = (dic[group][ds][method] - best_val) / best_val * 100
         if best_method == method:
           item_str = "\\textbf{" + acc + "}"
         else:
-          item_str = f"{acc} ({comp:.1f}\\%)"
+          item_str = f"{acc} ({comp:.1f})"
         if len(s_) <= i:
           s_.append([method])
         s_[i].append(item_str)

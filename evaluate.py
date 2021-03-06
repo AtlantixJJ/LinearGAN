@@ -85,6 +85,23 @@ def evaluate_SE(SE, G, P, resolution, num, ls='trunc-wp'):
   return mIoU, c_ious
 
 
+def evaluate_predictions(target_labels, sample_labels):
+  N, M = sample_labels.shape[:2]
+  n_class = sample_labels.max() + 1
+  res = []
+  for i in range(N):
+    gt = target_labels[i].cuda()
+    for j in range(M):
+      dt = sample_labels[i, j].cuda()
+      IoU = iou(dt, gt,
+        num_classes=n_class,
+        ignore_index=0, # This will cause background to be ignored
+        absent_score=-1, # resulting in n_class - 1 vectors
+        reduction='none').cpu()
+      pixelacc = (dt == gt).sum() / float(dt.shape.numel())
+      res.append([pixelacc, IoU])
+
+      
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument('--SE', type=str, default='expr/semantics',
