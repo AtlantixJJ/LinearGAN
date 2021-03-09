@@ -48,65 +48,7 @@ def get_table_suit(name):
       "stylegan" : ["stylegan_celebahq", "stylegan_bedroom", "stylegan_church"],
       "stylegan2" : ["stylegan2_ffhq", "stylegan2_bedroom", "stylegan2_church"]}
   return Gs, methods, loss_types, ls, layer_weights, lrs, els
-
-
-def str_table_single(dic, indicate_best=True, T=0):
-  for k2 in list(dic["LSE"].keys()):
-    maxi = -1
-    for k1 in list(dic.keys()):
-      if dic[k1][k2] > maxi:
-        maxi = dic[k1][k2]
-    if maxi < T:
-      for k1 in list(dic.keys()):
-        del dic[k1][k2]
-  idic = invert_dic(dic)
-  methods = list(dic.keys())
-  Gs = list(idic.keys())
-  strs = [formal_name(Gs)]
-  for method in methods:
-    s = [method]
-    for G in Gs:
-      best_ind, best_method, best_val = max_key(idic[G])
-      acc = f"{dic[method][G] * 100:.1f}"
-      comp = (dic[method][G] - best_val) / (best_val + 1e-6) * 100
-      comp = "*" if best_method == method else f"({comp:.1f})"
-      item_str = acc
-      if indicate_best:
-        item_str = f"{acc} {comp}"
-      s.append(item_str)
-    strs.append(s)
-  return strs
-
-
-def str_table_multiple(dic, T=0): # group, G, method
-  groups = list(dic.keys()) # 1st column name
-  def latex_header(n):
-    return f"\\multicolumn" + "{" + str(n) + "}" + "{c|}"
-  strs = [["Generator"] + [f"{latex_header(len(dic[g].keys()))}" + \
-            "{" + formal_name(g) + "}" for g in groups]]
-  s = ["Dataset"]
-  for g in groups:
-    Gs = list(dic[groups[0]].keys()) # 2nd column name
-    s.extend(formal_name(Gs))
-  strs.append(s)
-
-  s_ = []
-  for group in dic.keys():
-    for ds in dic[group].keys():
-      best_ind, best_method, best_val = max_key(dic[group][ds])
-      for i, method in enumerate(dic[group][ds].keys()):
-        acc = f"{dic[group][ds][method] * 100:.1f}"
-        comp = (dic[group][ds][method] - best_val) / best_val * 100
-        if best_method == method:
-          item_str = "\\textbf{" + acc + "}"
-        else:
-          item_str = f"{acc} ({comp:.1f})"
-        if len(s_) <= i:
-          s_.append([method])
-        s_[i].append(item_str)
-  strs.extend(s_)
-  return strs
-
+  
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
@@ -127,9 +69,9 @@ if __name__ == "__main__":
         fpath = f"{args.dir}/{G}_{args_name}.txt"
         mIoU, cious = read_results(fpath)
         if mIoU < 0:
+          print(f"!> {fpath} is empty")
           continue
         dic[group_name][ds][method] = float(mIoU)
-
   strs = str_table_multiple(dic)
 
   with open(f"results/tex/{args.name}.tex", "w") as f:

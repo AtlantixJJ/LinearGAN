@@ -1,3 +1,6 @@
+"""
+Select categories and output the latex table.
+"""
 import torch, sys, os, argparse
 sys.path.insert(0, ".")
 import numpy as np
@@ -6,38 +9,6 @@ from lib.misc import *
 from lib.op import torch2numpy
 from evaluate import read_results
 
-"""
-def get_class_suit(ds="bedroom", labels=[]):
-  if "bedroom" in ds:
-    FGs = ["Bedroom", "Bedroom", "Bedroom"]
-  else:
-    FGs = ["Church", "Church", "Church"]
-  methods = ["LSE", "NSE-1", "NSE-2"]
-  loss_types = ["N"]
-  lrs = ["0.001"]
-  lw_types = ["SP"]
-  ls = ["Trunc"]#["Tmixed", "Ttrunc"]
-  els = ["Etrunc"]#["Emixed", "Etrunc"]
-  row_groups = [FGs, methods, loss_types, ls, lw_types, lrs, els]
-  row_names = enumerate_names(groups=row_groups)
-
-  if "bedroom" in ds:
-    Gs = ["pggan_bedroom", "stylegan_bedroom", "stylegan2_bedroom"]
-  else:
-    Gs = ["pggan_church", "stylegan_church", "stylegan2_church"]
-  loss_types = ["lnormal"]
-  lrs = ["lr0.001"]
-  lw_types = ["lwsoftplus"]#, "lwnone"]
-  ls = ["lstrunc-wp"] #["lsnotrunc-mixwp", "lstrunc-wp"]
-  els = ["elstrunc-wp"] #["elsnotrunc-mixwp", "elstrunc-wp"]
-  row_groups = [Gs, methods, loss_types, ls, lw_types, lrs, els]
-  row_args = enumerate_args(groups=row_groups)
-  for row_name, row_arg in zip(row_names, row_args):
-    for col_name in labels:
-      row = "-".join(row_name)
-      arg = "_".join(row_arg)
-      yield row, col_name, arg #row_arg, col_arg
-"""
 
 def get_table_suit(G_name, ds):
   ds_name = "Bedroom" if ds == "bedroom" else "Church"
@@ -108,9 +79,7 @@ def get_common_labels(dic):
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
-  parser.add_argument("--dir", default="results/semantics/", help="")
-  parser.add_argument("--name", default="all-trunc-teval")
-  parser.add_argument("--force-calc", default=0, type=int)
+  parser.add_argument("--dir", default="results/full_label_SE/", help="")
   args = parser.parse_args()
   labels = read_ade20k_labels()[1:]
   G_labels = {}
@@ -132,11 +101,11 @@ if __name__ == "__main__":
           dic[k1][k2] = cious.mean()
 
       strs = str_table_single(dic)
-      with open(f"results/tex/{G_name}_{ds}_selected_classes_global.tex", "w") as f:
+      with open(f"results/tex/catselect_global_{G_name}_{ds}.tex", "w") as f:
         f.write(str_latex_table(strs))
 
       strs = str_table_single(ndic)
-      with open(f"results/tex/{G_name}_{ds}_selected_classes.tex", "w") as f:
+      with open(f"results/tex/catselect_class_{G_name}_{ds}.tex", "w") as f:
         f.write(str_latex_table(strs))
 
   with open("figure/selected_labels.csv", "w") as f:

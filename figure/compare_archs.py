@@ -1,3 +1,6 @@
+"""
+Compare different architectures of LSE, NSE-1, and NSE-2.
+"""
 import torch, sys, os, argparse
 sys.path.insert(0, ".")
 import numpy as np

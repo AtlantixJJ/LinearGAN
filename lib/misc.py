@@ -276,6 +276,37 @@ def str_table_single(dic):
   return strs
 
 
+def str_table_multiple(dic, T=0): # group, G, method
+  groups = list(dic.keys()) # 1st column name
+  def latex_header(n):
+    return f"\\multicolumn" + "{" + str(n) + "}" + "{c|}"
+  strs = [["Generator"] + [f"{latex_header(len(dic[g].keys()))}" + \
+            "{" + formal_name(g) + "}" for g in groups]]
+  s = ["Dataset"]
+  for g in groups:
+    Gs = list(dic[groups[0]].keys()) # 2nd column name
+    s.extend(formal_name(Gs))
+  strs.append(s)
+
+  s_ = []
+  for group in dic.keys():
+    for ds in dic[group].keys():
+      print(group, ds, dic[group][ds])
+      best_ind, best_method, best_val = max_key(dic[group][ds])
+      for i, method in enumerate(dic[group][ds].keys()):
+        acc = f"{dic[group][ds][method] * 100:.1f}"
+        comp = (dic[group][ds][method] - best_val) / best_val * 100
+        if best_method == method:
+          item_str = "\\textbf{" + acc + "}"
+        else:
+          item_str = f"{acc} ({comp:.1f})"
+        if len(s_) <= i:
+          s_.append([method])
+        s_[i].append(item_str)
+  strs.extend(s_)
+  return strs
+  
+
 def str_latex_table(strs):
   """Format a string table to a latex table.
   

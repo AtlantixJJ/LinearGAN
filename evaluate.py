@@ -31,6 +31,11 @@ def read_results(res_path):
   with open(res_path, "r") as f:
     mIoU = float(f.readline().strip())
     c_iou = [float(i) for i in f.readline().strip().split(" ")]
+  x = np.array(c_iou)
+  mIoU_ = float(x[x > -0.1].mean())
+  if abs(mIoU_ - mIoU) > 1e-3:
+    print(f"!> {mIoU_} does not match original {mIoU}")
+    return mIoU_, c_iou
   return mIoU, c_iou
 
 
@@ -58,12 +63,11 @@ def aggregate_iou(res):
   # r[0] is pixelacc, r[1] is IoU
   ic_iou = torch.stack([r[1] for r in res])
   c_iou = torch.zeros(ic_iou.shape[1])
-  #print(ic_iou.shape, c_iou.shape)
   for c in range(ic_iou.shape[1]):
     val = ic_iou[:, c]
     val = val[val > -0.1]
     c_iou[c] = -1 if val.shape[0] == 0 else val.mean()
-  mIoU = c_iou.mean()
+  mIoU = c_iou[c_iou > -0.1].mean()
   return mIoU, c_iou
 
 
