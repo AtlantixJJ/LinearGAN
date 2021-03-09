@@ -1,7 +1,7 @@
 # python 3.7
 """Misc utility functions without dependence on Deep Learning library."""
 
-import os
+import os, glob
 import numpy as np
 from PIL import Image
 
@@ -77,6 +77,7 @@ def imread(fpath):
 
 
 def imwrite(fpath, image, format="RGB"):
+
   """Write an numpy image to file.
 
   Args:

@@ -100,8 +100,9 @@ def evaluate_predictions(target_labels, sample_labels):
         reduction='none').cpu()
       pixelacc = (dt == gt).sum() / float(dt.shape.numel())
       res.append([pixelacc, IoU])
+  return res
 
-      
+
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument('--SE', type=str, default='expr/semantics',

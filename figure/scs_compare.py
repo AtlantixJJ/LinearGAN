@@ -1,10 +1,9 @@
 import torch, sys, os, argparse
 sys.path.insert(0, ".")
-from utils.misc import listkey_convert, str_latex_table
-from utils.op import torch2numpy
+from lib.misc import listkey_convert, str_latex_table, formal_name
+from lib.op import torch2numpy
 import numpy as np
-from figure.methods_compare import iou_from_pth, formal_name
-
+from evaluate import read_results
 
 def get_table_suit():
   params = []
@@ -41,8 +40,10 @@ if __name__ == "__main__":
       dic[G] = {}
     if n not in dic[G]:
       dic[G][n] = []
-    fpath = f"{args.dir}/{G}_r{r}_n{n}.pth"
-    mIoU = iou_from_pth(fpath)
+    fpath = f"{args.dir}/{G}_r{r}_n{n}.txt"
+    if not os.path.exists(fpath):
+      continue
+    mIoU, cious = read_results(fpath)
     if mIoU > 0:
       dic[G][n].append(mIoU)
 
@@ -54,8 +55,8 @@ if __name__ == "__main__":
       v = np.array(dic[G][n])
       vdic[G][n] = [v.min(), v.mean(), v.max()]
     # baseline
-    fpath = f"{args.dir}/{G}_{G}_baseline_repeat0.pth"
-    vdic[G]["baseline"] = [0,iou_from_pth(fpath),0]
+    fpath = f"{args.dir}/{G}_baseline.txt"
+    vdic[G]["baseline"] = [0, read_results(fpath)[0], 0]
   strs = str_table_single(vdic)
   with open(f"results/tex/scs.tex", "w") as f:
     f.write(str_latex_table(strs))

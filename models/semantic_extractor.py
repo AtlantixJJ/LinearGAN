@@ -352,6 +352,7 @@ class NSE2(SemanticExtractor):
     base_dic = SemanticExtractor.arch_info(self)
     base_dic["ksize"] = self.ksize
     base_dic["type"] = "NSE-2"
+    return base_dic
 
   def build(self):
     def conv_block(in_dim, out_dim):

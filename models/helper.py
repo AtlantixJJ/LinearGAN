@@ -20,7 +20,19 @@ __all__ = ['build_generator', 'build_discriminator', 'build_encoder',
 def load_semantic_extractor(fpath):
   """Load semantic extractor from a pth path."""
   data = torch.load(fpath)
-  SE_type = data["arch"]["type"]
+  try:
+    SE_type = data["arch"]["type"]
+  except: # a bug in code
+    print(f"!> {fpath} data incomplete, use LSE data.")
+    lse_data = torch.load(fpath.replace("NSE-2", "LSE"))
+    data["arch"] = {
+      "ksize" : 3,
+      "type" : "NSE-2",
+      "n_class" : lse_data["arch"]["n_class"],
+      "dims" : lse_data["arch"]["dims"],
+      "layers" : lse_data["arch"]["layers"]}
+    torch.save(data, fpath)
+    SE_type = data["arch"]["type"]
   SE = EXTRACTOR_POOL[SE_type](**data["arch"])
   SE.load_state_dict(data["param"])
   return SE

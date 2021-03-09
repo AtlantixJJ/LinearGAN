@@ -42,15 +42,18 @@ def eval_single(Gs, Ps, eval_file):
     images = []
     sample_labels = []
     for i in tqdm(range(wp.shape[0])):
+      if not is_eval and i >= N_show * M:
+        break
       with torch.no_grad():
         image = G.synthesis(wp[i:i+1].cuda())
         image = bu(image, size).clamp(-1, 1)
-        sample_labels.append(P(image, size=size)[0].cpu())
+        sample_labels.append(P(image, size=size).cpu())
         images.append((image.cpu() + 1) / 2)
     images = torch.cat(images)
-    images = images.view(N, M, *images.shape[1:])
+    images = images.view(-1, M, *images.shape[1:])
     sample_labels = torch.cat(sample_labels)
-    sample_labels = sample_labels.view(N, M, *sample_labels.shape[1:])
+    sample_labels = sample_labels.view(
+      -1, M, *sample_labels.shape[1:])
     target_label_viz = torch.stack([segviz_torch(x) for x in target_labels])
     target_label_viz = bu(target_label_viz, size) # (5, C, H, W)
     if is_gen:

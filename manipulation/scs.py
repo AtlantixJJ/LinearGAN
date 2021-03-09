@@ -10,6 +10,7 @@ from tqdm import tqdm
 
 from lib.op import generate_images, bu
 from manipulation.strategy import EditStrategy
+from lib.misc import imread, listkey_convert, set_cuda_devices
 
 
 class SCS(object):
@@ -106,7 +107,6 @@ def read_labels(G_name, G, P):
 
 if __name__ == "__main__":
   import argparse, os
-  from lib.misc import imread, listkey_convert, set_cuda_devices
 
   parser = argparse.ArgumentParser()
   parser.add_argument('--SE', type=str, default='expr/fewshot',
