@@ -30,7 +30,7 @@ def eval_single(Gs, Ps, eval_file):
 
   print(f"=> Loading from {eval_file}")
   z, wp = torch.load(eval_file, map_location='cpu')
-  print(z.shape, wp.shape)
+  print(z.shape, wp.shape, target_labels.shape)
   N, M = z.shape[0] // 10, 10 # 10 repeats
   N_show = 4
 
