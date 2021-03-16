@@ -47,8 +47,8 @@ def eval_single(Gs, Ps, eval_file):
       with torch.no_grad():
         image = G.synthesis(wp[i:i+1].cuda())
         sample_labels.append(P(image, size=size).cpu())
-        if i < N_show * M:
-          images.append((bu(image, size).cpu() + 1) / 2)
+      if i < N_show * M:
+        images.append((bu(image, size).cpu() + 1) / 2)
     images = torch.cat(images)
     sample_labels = torch.cat(sample_labels)
     sample_labels = sample_labels.view(
@@ -56,10 +56,8 @@ def eval_single(Gs, Ps, eval_file):
     target_label_viz = bu(torch.stack([
       segviz_torch(x) for x in target_labels[:N_show]]), size)
     if is_gen:
-      show_labels = bu(
-        target_label_viz[:N_show].cpu(), 256).unsqueeze(1)
-      show_images = bu(images, 256).view(-1, M, *images.shape[1:]).cpu()
-      print(show_labels.shape, show_images.shape)
+      show_labels = bu(target_label_viz.cpu(), 256).unsqueeze(1)
+      show_images = bu(images, 256).view(N_show, M, 3, 256, 256).cpu()
       all_images = torch.cat([show_labels, show_images], 1)
       disp_image = vutils.make_grid(all_images.view(
         -1, *all_images.shape[2:]),
