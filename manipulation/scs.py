@@ -90,11 +90,12 @@ class SCS(object):
     return agg
 
 
-def read_labels(G_name, G, P):
+def read_labels(G_name, G, P,
+  FACE_DIR="../datasets/CelebAMask-HQ/CelebAMask-HQ-mask-15/"):
   if "ffhq" in G_name:
     image_ids = np.random.RandomState(1116).choice(list(range(2000)), (100,))
-    labels = np.stack([imread(f"../datasets/CelebAMask-HQ/CelebAMask-HQ-mask-15/{i}.png")
-      for i in image_ids])[:, :, :, 0] # (N, H, W, 3)
+    labels = np.stack([imread(f"{FACE_DIR}/{i}.png")[:, :, 0]
+      for i in image_ids]) # (N, H, W, 3)
     labels = torch.from_numpy(labels).long()
   else:
     wp = np.load(f"data/trunc_{G_name}/wp.npy")
