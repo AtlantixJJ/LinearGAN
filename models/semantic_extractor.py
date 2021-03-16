@@ -59,9 +59,9 @@ class SEFewShotLearner(pl.LightningModule):
     """
     batch is dummy, batch_idx is used for gradient accumulation
     """
-    idx = batch_idx % self.label.shape[0]
+    idx = batch_idx % len(self.label)
     feature = [f[idx:idx+1].cuda() for f in self.feature]
-    _, segs = self.model(feature, size=self.resolution)
+    segs = self.model(feature, size=self.resolution)
     seg = op.bu(segs[-1], self.label.size(2))
     segloss = self.loss_fn_final(seg, self.label[idx:idx+1])
     return segloss

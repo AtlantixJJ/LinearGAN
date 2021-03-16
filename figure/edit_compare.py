@@ -4,24 +4,53 @@ import torch
 import torchvision.utils as vutils
 from tqdm import tqdm
 import numpy as np
-import metric
-from dataset import NoiseDataModule
-from models.semantic_extractor import load_from_pth_LSE, save_to_pth, SELearner
-from utils.visualizer import HtmlPageVisualizer, segviz_torch
-from utils.misc import imread, listkey_convert, set_cuda_devices
-from utils.op import generate_images, bu
-from utils.editor import ConditionalSampling
-from models.semantic_extractor import load_from_pth
-from models.helper import build_generator, build_semantic_extractor
+
+from lib.visualizer import segviz_torch
+from lib.misc import imread, listkey_convert, set_cuda_devices
+from lib.op import generate_images, bu
+from models.helper import build_generator, load_semantic_extractor
 from predictors.face_segmenter import FaceSegmenter
 from predictors.scene_segmenter import SceneSegmenter
-from script.semantics.edit import read_data, fuse_stroke
+from manipulation.spie import ImageEditing
 
 G2SE = {
-  "stylegan2_ffhq" : "predictors/pretrain/LSE_15_512,512,512,512,512,512,512,512,512,256,256,128,128,64,64,32,32_0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16.pth"}
+  "stylegan2_ffhq" : "predictors/pretrain/stylegan2_ffhq_LSE.pth"}
 
 def norm(x):
   return (x.clamp(-1, 1) + 1) / 2
+
+
+def read_data(data_dir, n_class=15):
+  #kernel = cv2.getStructuringElement(cv2.MORPH_ERODE, (3, 3))
+  files = glob.glob(f"{data_dir}/*")
+  files.sort()
+  N = 7
+  z = []
+  image_stroke = []
+  label_stroke = []
+  image_mask = []
+  label_mask = []
+  for i, f in enumerate(files):
+    if i % N == 0:
+      z.append(np.load(f)[0])
+    elif i % N == 1:
+      img = imread(f).transpose(2, 0, 1)
+      image_stroke.append((img - 127.5) / 127.5)
+    elif i % N == 2:
+      label_img = imread(f)
+      t = np.zeros(label_img.shape[:2]).astype("uint8")
+      for j in range(n_class):
+        c = get_label_color(j)
+        t[color_mask(label_img, c)] = j
+      label_stroke.append(t)
+    elif i % N == 3:
+      img = imread(f) #img = cv2.erode(imread(f), kernel)
+      image_mask.append((img[:, :, 0] > 127).astype("uint8"))
+    elif i % N == 4:
+      img = imread(f) #img = cv2.erode(imread(f), kernel)
+      label_mask.append((img[:, :, 0] > 127).astype("uint8"))
+  res = [z, image_stroke, image_mask, label_stroke, label_mask]
+  return [torch.from_numpy(np.stack(r)) for r in res]
 
 
 def eval_single(G, P, SE, eval_file, origin_zs, image_strokes, image_masks, label_strokes, label_masks):

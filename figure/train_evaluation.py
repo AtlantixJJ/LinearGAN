@@ -19,8 +19,14 @@ def get_SE_names(name):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument("--dir", default="expr/semantics", help="")
-  parser.add_argument("--name", default="bedroom", help="")
+  parser.add_argument("--name", default="", help="")
   args = parser.parse_args()
+
+  if args.name == "":
+    for name in ["face", "bedroom", "church"]:
+      os.system(f"python figure/train_evaluation.py --dir {args.dir} --name {name}")
+    exit(0)
+
   dic = {}
   for SE_name in get_SE_names(args.name):
     G, D, SE = SE_name.split("_")
@@ -40,5 +46,5 @@ if __name__ == "__main__":
       dic[key] = {}
     dic[key][SE] = mIoU
   
-  plot_dict(dic, f"results/train_eval/{args.name}.pdf", 1, 3)
+  plot_dict(dic, f"results/train_eval/train_eval_{args.name}.pdf", 1, 3)
 

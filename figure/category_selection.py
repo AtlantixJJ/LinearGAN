@@ -4,6 +4,7 @@ Select categories and output the latex table.
 import torch, sys, os, argparse
 sys.path.insert(0, ".")
 import numpy as np
+from collections import OrderedDict
 
 from lib.misc import *
 from lib.op import torch2numpy
@@ -43,10 +44,10 @@ def get_table_suit(G_name, ds):
 
 
 def get_class_table(data_dir, G_name, ds):
-  dic = {}
+  dic = OrderedDict()
   for row_name, col_name, arg in get_table_suit(G_name, ds):
     if row_name not in dic:
-      dic[row_name] = {}
+      dic[row_name] = OrderedDict()
     fpath = f"{data_dir}/{arg}.txt"
     if not os.path.exists(fpath):
       print(f"=> {fpath} not found")
@@ -82,31 +83,34 @@ if __name__ == "__main__":
   parser.add_argument("--dir", default="results/full_label_SE/", help="")
   args = parser.parse_args()
   labels = read_ade20k_labels()[1:]
-  G_labels = {}
+  G_labels = OrderedDict()
+  gdic = OrderedDict()
   # read classwise data
   for G_name in ["pggan", "stylegan", "stylegan2"]:
-    G_labels[G_name] = {}
+    G_labels[G_name] = OrderedDict()
+    gdic[G_name] = OrderedDict()
     for ds in ["bedroom", "church"]:
+      gdic[G_name][ds] = OrderedDict()
       dic = get_class_table(args.dir, G_name, ds)
       label_indice = get_common_labels(dic)
       selected_labels = np.array(labels)[label_indice]
       G_labels[G_name][ds] = selected_labels
-      ndic = {}
+      ndic = OrderedDict()
       for k1 in dic.keys():
         for k2 in dic[k1].keys():
-          ndic[f"{k1}_{k2}"] = {}
+          ndic[f"{k1}_{k2}"] = OrderedDict()
           cious = np.array(dic[k1][k2])[label_indice]
           for n, v in zip(selected_labels, cious):
             ndic[f"{k1}_{k2}"][n] = v
-          dic[k1][k2] = cious.mean()
-
-      strs = str_table_single(dic)
-      with open(f"results/tex/catselect_global_{G_name}_{ds}.tex", "w") as f:
-        f.write(str_latex_table(strs))
+          gdic[G_name][ds][k1] = cious.mean()
 
       strs = str_table_single(ndic)
       with open(f"results/tex/catselect_class_{G_name}_{ds}.tex", "w") as f:
         f.write(str_latex_table(strs))
+
+  strs = str_table_multiple(gdic)
+  with open(f"results/tex/catselect_global.tex", "w") as f:
+    f.write(str_latex_table(strs))
 
   with open("figure/selected_labels.csv", "w") as f:
     for G in ["stylegan2", "stylegan", "pggan"]:

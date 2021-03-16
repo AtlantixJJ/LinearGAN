@@ -13,6 +13,7 @@ from lib.visualizer import segviz_numpy, get_label_color
 from models.semantic_extractor import LSE, SEFewShotLearner
 from manipulation.spie import ImageEditing
 from manipulation.strategy import EditStrategy
+from train_fewshot import get_features
 
 
 class AddDataThread(threading.Thread):
@@ -43,16 +44,16 @@ class TrainingThread(threading.Thread):
     self.features.append(feature)
     self.labels.append(label)
     self.labels_mask.append(label_mask)
-    self.learner.features = self.features
-    self.learner.labels = self.labels
+    self.learner.feature = [torch.cat([feats[i] for feats in self.features]) for i in range(len(feature))]
+    self.learner.label = torch.cat(self.labels).long()
     self.lock.release()
 
   def reset(self, features=[], labels=[], labels_mask=[]):
     self.lock.acquire()
     self.count = 0
     self.running = False
-    self.features = features
     self.labels = labels
+    self.features = features
     self.labels_mask = labels_mask
     self.learner.features = features
     self.learner.labels = labels
@@ -101,8 +102,8 @@ class TrainingThread(threading.Thread):
     self._check_has_data()
     print("=> Training thread started")
     for i in range(self.max_iter):
-      if not self.running:
-        break
+      while not self.running:
+        time.sleep(1)
       self.lock.acquire()
       self.learner.training_step(None, i)
       self.lock.release()
@@ -184,8 +185,8 @@ class TrainAPI(object):
     zs = torch.from_numpy(zs).float().cuda()
     size = self.MA.models_config[model_name]["output_size"]
     wp = EditStrategy.z_to_wp(G, zs, in_type="zs", out_type="notrunc-wp")
-    image, feature = G.synthesis(wp, generate_feature=True)
     label_stroke = preprocess_label(ann, SE.n_class, size)
+    image, feature = G.synthesis(wp, generate_feature=True)
     label_mask = preprocess_mask(ann_mask, size).squeeze(1).cuda()
 
     # add data into training thread

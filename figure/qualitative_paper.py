@@ -98,7 +98,7 @@ if __name__ == "__main__":
 
   parser = argparse.ArgumentParser()
   parser.add_argument("--dir", default="expr/semantics")
-  parser.add_argument("--op", default="face", help="face,bedroom,church")
+  parser.add_argument("--op", default="", help="face,bedroom,church")
   parser.add_argument("--place", default="paper", help="paper | appendix")
   parser.add_argument("--viz-models", default="LSE,NSE-1,NSE-2")
   parser.add_argument("--repeat", default=1, type=int)
@@ -106,6 +106,12 @@ if __name__ == "__main__":
   parser.add_argument("--gpu-id", default=0, type=int)
   args = parser.parse_args()
 
+  if args.op == "":
+    args = f"--dir {args.dir} --place {args.place} --viz-models {args.viz_models} --repeat {args.repeat} --row-set-num {args.row_set_num} --gpu-id {args.gpu_id}"
+    for op in ["face", "bedroom", "church"]:
+      os.system(f"python figure/qualitative_paper.py {args} --op {op}")
+    exit(0)
+    
   G_names = "pggan_celebahq,stylegan_celebahq,stylegan2_ffhq"
   if args.op == "bedroom":
     G_names = "pggan_bedroom,stylegan_bedroom,stylegan2_bedroom"
@@ -181,7 +187,6 @@ if __name__ == "__main__":
       """
 
   sizes = (N_col, N_row * 1.05)
-  sizes = (1.3 * sizes[0], 1.3 * sizes[1])
   fig = plt.figure(figsize=sizes) # paper: 11, 7
   plt.imshow(canvas)
   plt.axis("off")

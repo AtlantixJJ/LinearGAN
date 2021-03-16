@@ -46,24 +46,24 @@ def eval_single(Gs, Ps, eval_file):
         break
       with torch.no_grad():
         image = G.synthesis(wp[i:i+1].cuda())
-        image = bu(image, size).clamp(-1, 1)
         sample_labels.append(P(image, size=size).cpu())
-        images.append((image.cpu() + 1) / 2)
+        if i < N_show * M:
+          images.append((bu(image, size).cpu() + 1) / 2)
     images = torch.cat(images)
-    images = images.view(-1, M, *images.shape[1:])
     sample_labels = torch.cat(sample_labels)
     sample_labels = sample_labels.view(
       -1, M, *sample_labels.shape[1:])
     target_label_viz = torch.stack([segviz_torch(x) for x in target_labels])
     target_label_viz = bu(target_label_viz, size) # (5, C, H, W)
     if is_gen:
-      all_images = torch.cat([
-          target_label_viz[:N_show].unsqueeze(1).cpu(),
-          images[:N_show].cpu()], 1)
+      show_labels = bu(
+        target_label_viz[:N_show].cpu(), 256).unsqueeze(1)
+      show_images = bu(images, 256).view(-1, M, *images.shape[1:]).cpu()
+      all_images = torch.cat([show_labels, show_images], 1)
       disp_image = vutils.make_grid(all_images.view(
         -1, *all_images.shape[2:]),
         nrow=M+1, padding=10, pad_value=1)
-      fpath = eval_file.replace(".pth", ".png")
+      fpath = eval_file.replace(".pth", ".pdf")
       vutils.save_image(disp_image.unsqueeze(0), fpath)
 
     if is_eval:

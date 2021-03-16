@@ -9,6 +9,7 @@ from torch.utils.data.dataloader import DataLoader
 
 
 def get_features(synthesis, wp, P=None, is_large_mem=False):
+  #images = []
   features = []
   labels = []
   with torch.no_grad():
@@ -19,6 +20,7 @@ def get_features(synthesis, wp, P=None, is_large_mem=False):
       if is_large_mem:
         feature = [f.cpu() for f in feature]
       features.append(feature)
+      #images.append(image)
   features = [torch.cat([feats[i] for feats in features])
     for i in range(len(features[0]))]
   if P:

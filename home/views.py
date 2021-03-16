@@ -94,14 +94,16 @@ def add_annotation(request):
 
 @csrf_exempt
 def ctrl_training(request):
+  form_data = request.POST
+  sess = request.session
   if request.method == 'POST' and 'model' in form_data:
     try:
       model = form_data['model']
       if not editor.has_model(model):
         print(f"!> Model not exist {model}")
         return HttpResponse('{}')
-      cmd = model['action']
-      flag = trainer.send_command(model, cmd)
+      cmd = form_data['action']
+      flag = trainer.ctrl_training(model, cmd)
       flag = '"true"' if flag else '"false"'
       json = '{"action": "%s", "status" : %s}'
       return HttpResponse(json % (cmd, flag))
