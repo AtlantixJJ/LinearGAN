@@ -190,7 +190,7 @@ def read_data(data_dir, name_list, n_class=15):
 
     img = imread(files[2])
     label_mask.append((img[:, :, 0] > 127).astype("uint8"))
-    print(f"{files[2]} => {img.min()} {img.max()}")
+    print(f"{files[2]} => {img.shape} {img.min()} {img.max()}")
 
     img = imread(files[3])
     t = np.zeros(img.shape[:2]).astype("uint8")
