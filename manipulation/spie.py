@@ -223,4 +223,5 @@ if __name__ == "__main__":
     help='Which GPU(s) to use. (default: `0`)')
   args = parser.parse_args()
   set_cuda_devices(args.gpu_id)
-  res = read_data(args.data_dir, args.name_list)
+  name_list = open(args.name_list, "r").readlines()
+  res = read_data(args.data_dir, name_list)
