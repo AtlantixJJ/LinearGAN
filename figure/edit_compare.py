@@ -20,35 +20,38 @@ def norm(x):
   return (x.clamp(-1, 1) + 1) / 2
 
 
-def read_data(data_dir, n_class=15):
-  #kernel = cv2.getStructuringElement(cv2.MORPH_ERODE, (3, 3))
-  files = glob.glob(f"{data_dir}/*")
-  files.sort()
+def read_data(data_dir, name_list, n_class=15):
   N = 7
   z = []
   image_stroke = []
   label_stroke = []
   image_mask = []
   label_mask = []
-  for i, f in enumerate(files):
-    if i % N == 0:
-      z.append(np.load(f)[0])
-    elif i % N == 1:
-      img = imread(f).transpose(2, 0, 1)
-      image_stroke.append((img - 127.5) / 127.5)
-    elif i % N == 2:
-      label_img = imread(f)
-      t = np.zeros(label_img.shape[:2]).astype("uint8")
-      for j in range(n_class):
-        c = get_label_color(j)
-        t[color_mask(label_img, c)] = j
-      label_stroke.append(t)
-    elif i % N == 3:
-      img = imread(f) #img = cv2.erode(imread(f), kernel)
-      image_mask.append((img[:, :, 0] > 127).astype("uint8"))
-    elif i % N == 4:
-      img = imread(f) #img = cv2.erode(imread(f), kernel)
-      label_mask.append((img[:, :, 0] > 127).astype("uint8"))
+  for name in name_list:
+    name = name[:name.rfind("_")]
+    files = glob.glob(f"{data_dir}/{name}*")
+    files.sort()
+    
+    print(files)
+
+    z.append(np.load(files[0])[0])
+
+    img = imread(files[1]).transpose(2, 0, 1)
+    image_stroke.append((img - 127.5) / 127.5)
+
+    label_img = imread(files[2])
+    t = np.zeros(label_img.shape[:2]).astype("uint8")
+    for j in range(n_class):
+      c = get_label_color(j)
+      t[color_mask(label_img, c)] = j
+    label_stroke.append(t)
+
+    img = imread(files[3])
+    image_mask.append((img[:, :, 0] > 127).astype("uint8"))
+
+    img = imread(files[4])
+    label_mask.append((img[:, :, 0] > 127).astype("uint8"))
+
   res = [z, image_stroke, image_mask, label_stroke, label_mask]
   return [torch.from_numpy(np.stack(r)) for r in res]
 

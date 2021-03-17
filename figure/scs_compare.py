@@ -22,7 +22,7 @@ def str_table_single(dic, indicate_best=True, T=0):
     for G in Gs:
       mini, mean, maxi = dic[G][n]
       delta = max(mean - mini, maxi - mean)
-      item_str = f"{mean*100:.1f} \\pm {delta*100:.1f}"
+      item_str = f"{mean*100:.1f} $\\pm$ {delta*100:.1f}"
       s.append(item_str)
     strs.append(s)
   return strs
