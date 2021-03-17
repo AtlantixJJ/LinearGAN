@@ -1,7 +1,7 @@
 # python 3.7
 """Semantic-Precise Image Editing."""
 
-import sys
+import sys, glob
 sys.path.insert(0, ".")
 import numpy as np
 import torch
@@ -10,6 +10,9 @@ from tqdm import tqdm
 import torchvision.utils as vutils
 
 from lib.op import generate_images, bu
+from lib.misc import imread
+from lib.visualizer import get_label_color
+from home.utils import color_mask, preprocess_image, preprocess_label, preprocess_mask
 from manipulation.strategy import EditStrategy
 
 
@@ -170,3 +173,52 @@ class ImageEditing(object):
     int_label = torch.cat(int_label)
     origin_image = torch.cat(origin_image)
     return origin_image, fused_image, fused_label, int_label, ext_label
+
+
+def read_data(data_dir, name_list, n_class=15):
+  z, image_stroke, label_stroke, image_mask, label_mask = [], [], [], [], []
+  for name in name_list:
+    name = name[:name.rfind("_")]
+    files = glob.glob(f"{data_dir}/{name}*")
+    files.sort()
+
+    print(files)
+
+    z.append(np.load(files[0])[0])
+
+    img = imread(files[1]).transpose(2, 0, 1)
+    image_stroke.append((img - 127.5) / 127.5)
+
+    label_img = imread(files[2])
+    t = np.zeros(label_img.shape[:2]).astype("uint8")
+    for j in range(n_class):
+      c = get_label_color(j)
+      t[color_mask(label_img, c)] = j
+    label_stroke.append(t)
+
+    img = imread(files[3])
+    image_mask.append((img[:, :, 0] > 127).astype("uint8"))
+
+    img = imread(files[4])
+    label_mask.append((img[:, :, 0] > 127).astype("uint8"))
+
+  res = [z, image_stroke, image_mask, label_stroke, label_mask]
+  return [torch.from_numpy(np.stack(r)) for r in res]
+
+
+if __name__ == "__main__":
+  import argparse
+  from lib.misc import set_cuda_devices
+
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--data-dir', type=str, default='data/collect_ffhq',
+    help='The input directory.')
+  parser.add_argument('--name-list', type=str, default='figure/spie_list.txt',
+    help='The list of names.')
+  parser.add_argument('--out-dir', type=str, default='results/spie',
+    help='The output directory.')
+  parser.add_argument('--gpu-id', default='0',
+    help='Which GPU(s) to use. (default: `0`)')
+  args = parser.parse_args()
+  set_cuda_devices(args.gpu_id)
+  res = read_data(args.data_dir, args.name_list)
