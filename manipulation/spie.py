@@ -183,6 +183,8 @@ def read_data(data_dir, name_list, n_class=15):
     files.sort()
 
     print(files)
+    print(name)
+    print(f"{data_dir}/{name}*")
 
     z.append(np.load(files[0])[0])
 
