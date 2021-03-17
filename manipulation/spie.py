@@ -184,6 +184,7 @@ def read_data(data_dir, name_list, n_class=15):
 
     img = imread(files[0])
     image_mask.append((img[:, :, 0] > 127).astype("uint8"))
+    print(img.min(), img.max())
 
     img = imread(files[1]).transpose(2, 0, 1)
     image_stroke.append((img - 127.5) / 127.5)
