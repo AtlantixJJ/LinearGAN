@@ -62,7 +62,7 @@ def color_mask(image, color):
   return r & g & b
 
 
-def preprocess_label(arr, n_class, size=512):
+def preprocess_label(arr, n_class, size=None):
   if size is not None:
     arr = imresize(arr, (size, size))
   else:

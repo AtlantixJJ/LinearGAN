@@ -13,6 +13,8 @@ from lib.op import generate_images, bu
 from lib.misc import imread
 from lib.visualizer import get_label_color
 from home.utils import color_mask, preprocess_label, preprocess_mask, preprocess_image
+from models.helper import load_semantic_extractor, build_generator
+from predictors.helper import build_predictor
 from manipulation.strategy import EditStrategy
 
 
@@ -186,9 +188,6 @@ def read_data(data_dir, name_list, n_class=15):
     image_stroke.append(preprocess_image(imread(files[1])))
     label_mask.append(preprocess_mask(imread(files[2])[:, :, 0]))
     label_stroke.append(preprocess_label(imread(files[3]), n_class))
-    print(f"{files[2]} => {label_mask[-1].shape} {label_mask[-1].min()} {label_mask[-1].max()}")
-    print(f"{files[3]} => {label_stroke[-1].shape} {label_stroke[-1].min()} {label_stroke[-1].max()}")
-
     z.append(np.load(files[-1])[0])
     for x in [image_mask[-1], image_stroke[-1], label_mask[-1], label_stroke[-1], z[-1]]:
       print(x[-1].shape, x[-1].min(), x[-1].max())
@@ -213,4 +212,33 @@ if __name__ == "__main__":
   args = parser.parse_args()
   set_cuda_devices(args.gpu_id)
   name_list = open(args.name_list, "r").readlines()
-  res = read_data(args.data_dir, name_list)
+  z, image_stroke, image_mask, label_stroke, label_mask = \
+    read_data(args.data_dir, name_list)
+  print(z.shape, image_stroke.shape, image_mask.shape, label_stroke.shape, label_mask.shape)
+  G_name = "stylegan2_ffhq"
+  DIR = "predictors/pretrain/"
+  G = build_generator(G_name)
+  P = build_predictor("face")
+  SE_full = load_semantic_extractor(f"{DIR}/{G_name}_LSE.pth")
+  SE_fewshot = load_semantic_extractor(f"{DIR}/{G_name}_8shot_LSE.pth")
+  for i in range(z.shape[0]):
+    _, fused_label, _, int_label, ext_label = ImageEditing.fuse_stroke(
+      G, SE_full, P, wp,
+      image_stroke[i], image_mask[i],
+      label_stroke[i], label_mask[i])
+
+    _, wp = ImageEditing.sseg_edit(
+      G, zs, fused_label, label_mask, SE_full,
+      op="internal",
+      latent_strategy="mixwp",
+      optimizer='adam',
+      n_iter=50,
+      base_lr=0.01)
+
+    image, feature = G.synthesis(wp.cuda(), generate_feature=True)
+    label = SE(feature)[-1].argmax(1)
+    image = torch2image(image)[0]
+    label_viz = segviz_numpy(torch2numpy(label))
+    zs = zs.detach().cpu().view(-1).numpy().tolist()
+    imwrite(f"{p}_new-image.png", image) # generated
+    imwrite(f"{p}_new-label.png", label_viz)
