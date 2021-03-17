@@ -63,7 +63,11 @@ def color_mask(image, color):
 
 
 def preprocess_label(arr, n_class, size=512):
-  x = torch.from_numpy(imresize(arr, (size, size)))
+  if size is not None:
+    arr = imresize(arr, (size, size))
+  else:
+    size = arr.shape[1]
+  x = torch.from_numpy(arr)
   t = torch.zeros(size, size)
   for i in range(n_class):
     c = get_label_color(i)
@@ -71,22 +75,26 @@ def preprocess_label(arr, n_class, size=512):
   return t.unsqueeze(0).cuda()
 
 
-def preprocess_image(arr, size=(1024, 1024)):
+def preprocess_image(arr, size=None):
   """arr in [0, 255], shape (H, W, C)
   """
   t = torch.from_numpy(arr.transpose(2, 0, 1)).unsqueeze(0)
   t = (t - 127.5) / 127.5
-  t = F.interpolate(t, size=size, mode="bilinear", align_corners=True)
+  if size is not None:
+    t = F.interpolate(t,
+      size=size, mode="bilinear", align_corners=True)
   return t
 
 
-def preprocess_mask(mask, size=(1024, 1024)):
+def preprocess_mask(mask, size=None):
   """
   mask in [0, 255], shape (H, W)
   """
   t = torch.from_numpy(mask).unsqueeze(0).unsqueeze(0)
   t = t / 255.
-  t = F.interpolate(t, size=size, mode="bilinear", align_corners=True)
+  if size is not None:
+    t = F.interpolate(t,
+      size=size, mode="bilinear", align_corners=True)
   return t
 
 
