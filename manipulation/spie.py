@@ -12,7 +12,7 @@ import torchvision.utils as vutils
 from lib.op import generate_images, bu
 from lib.misc import imread
 from lib.visualizer import get_label_color
-from home.utils import color_mask, preprocess_image, preprocess_label, preprocess_mask
+from home.utils import color_mask
 from manipulation.strategy import EditStrategy
 
 
@@ -180,30 +180,28 @@ def read_data(data_dir, name_list, n_class=15):
   for name in name_list:
     name = name[:name.rfind("_")]
     files = glob.glob(f"{data_dir}/{name}*")
-    files.sort()
+    files.sort() # img_m, img_s, lbl_m, lbl_s
 
-    print(files)
-    print(name)
-    print(f"{data_dir}/{name}*")
-
-    z.append(np.load(files[0])[0])
+    img = imread(files[0])
+    image_mask.append((img[:, :, 0] > 127).astype("uint8"))
 
     img = imread(files[1]).transpose(2, 0, 1)
     image_stroke.append((img - 127.5) / 127.5)
 
-    label_img = imread(files[2])
+    img = imread(files[2])
+    label_mask.append((img[:, :, 0] > 127).astype("uint8"))
+
+    label_img = imread(files[3])
     t = np.zeros(label_img.shape[:2]).astype("uint8")
     for j in range(n_class):
       c = get_label_color(j)
       t[color_mask(label_img, c)] = j
     label_stroke.append(t)
 
-    img = imread(files[3])
-    image_mask.append((img[:, :, 0] > 127).astype("uint8"))
-
-    img = imread(files[4])
-    label_mask.append((img[:, :, 0] > 127).astype("uint8"))
-
+    z.append(np.load(files[-1])[0])
+    for x in [image_mask[-1], image_stroke[-1], label_mask[-1], label_stroke[-1], z[-1]]:
+      print(x[-1].shape, x[-1].min(), x[-1].max())
+    print("-")
   res = [z, image_stroke, image_mask, label_stroke, label_mask]
   return [torch.from_numpy(np.stack(r)) for r in res]
 
