@@ -184,20 +184,21 @@ def read_data(data_dir, name_list, n_class=15):
 
     img = imread(files[0])
     image_mask.append((img[:, :, 0] > 127).astype("uint8"))
-    print(img.min(), img.max())
 
     img = imread(files[1]).transpose(2, 0, 1)
     image_stroke.append((img - 127.5) / 127.5)
 
     img = imread(files[2])
     label_mask.append((img[:, :, 0] > 127).astype("uint8"))
+    print(f"{files[2]} => {img.min()} {img.max()}")
 
-    label_img = imread(files[3])
-    t = np.zeros(label_img.shape[:2]).astype("uint8")
+    img = imread(files[3])
+    t = np.zeros(img.shape[:2]).astype("uint8")
     for j in range(n_class):
       c = get_label_color(j)
-      t[color_mask(label_img, c)] = j
+      t[color_mask(img, c)] = j
     label_stroke.append(t)
+
 
     z.append(np.load(files[-1])[0])
     for x in [image_mask[-1], image_stroke[-1], label_mask[-1], label_stroke[-1], z[-1]]:
