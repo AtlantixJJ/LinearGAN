@@ -185,7 +185,7 @@ def read_data(data_dir, name_list, n_class=15):
     image_mask.append(preprocess_mask(imread(files[0])))
     image_stroke.append(preprocess_image(imread(files[1])))
     label_mask.append(preprocess_mask(imread(files[2])))
-    label_stroke.append(preprocess_label(imread(files[3])))
+    label_stroke.append(preprocess_label(imread(files[3]), n_class))
     print(f"{files[2]} => {label_mask[-1].shape} {label_mask[-1].min()} {label_mask[-1].max()}")
     print(f"{files[3]} => {label_stroke[-1].shape} {label_stroke[-1].min()} {label_stroke[-1].max()}")
 
