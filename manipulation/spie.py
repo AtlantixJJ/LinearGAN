@@ -9,9 +9,9 @@ import torch.nn.functional as F
 from tqdm import tqdm
 import torchvision.utils as vutils
 
-from lib.op import generate_images, bu
+from lib.op import generate_images, bu, torch2image
 from lib.misc import imread
-from lib.visualizer import get_label_color
+from lib.visualizer import get_label_color, segviz_torch
 from home.utils import color_mask, preprocess_label, preprocess_mask, preprocess_image
 from models.helper import load_semantic_extractor, build_generator
 from predictors.helper import build_predictor
@@ -134,23 +134,29 @@ class ImageEditing(object):
     image, feature = G.synthesis(wp, generate_feature=True)
     origin_image = bu(image, size=size).cpu()
     int_label = SE(feature, size=size)[-1].argmax(1).cpu() if SE else None
-    ext_label = P(image, size=size) if P else None
+    ext_label = P(image, size=size).cpu() if P else None
 
     m = label_mask.cpu()
-    fused_label = ((1 - m) * int_label + m * label_stroke.cpu()).long() \
-      if label_stroke else None
+    fused_int_label = None if label_stroke is None or int_label is None else \
+      ((1 - m) * int_label + m * label_stroke.cpu()).long() 
+    fused_ext_label = None if label_stroke is None or ext_label is None else \
+      ((1 - m) * ext_label + m * label_stroke.cpu()).long()
 
     m = image_mask.cpu()
-    fused_image = (1 - m) * origin_image + m * image_stroke.cpu() \
-      if image_stroke else None
+    fused_image = None if image_stroke is None else \
+      (1 - m) * origin_image + m * image_stroke.cpu()
 
-    return fused_image, fused_label, origin_image, int_label, ext_label
+    return {
+        "fused_image" : fused_image,
+        "fused_int_label" : fused_int_label,
+        "fused_ext_label" : fused_ext_label,
+        "origin_image" : origin_image,
+        "int_label" : int_label,
+        "ext_label" : ext_label}
 
   @staticmethod
   def fuse_stroke_batch(G, SE, P, wps, image_strokes, image_masks, label_strokes, label_masks):
-    """
-    Args:
-      zs : The
+    """Not implemented
     """
     int_label = []
     ext_label = []
@@ -188,12 +194,10 @@ def read_data(data_dir, name_list, n_class=15):
     image_stroke.append(preprocess_image(imread(files[1])))
     label_mask.append(preprocess_mask(imread(files[2])[:, :, 0]))
     label_stroke.append(preprocess_label(imread(files[3]), n_class))
-    z.append(np.load(files[-1])[0])
-    for x in [image_mask[-1], image_stroke[-1], label_mask[-1], label_stroke[-1], z[-1]]:
-      print(x[-1].shape, x[-1].min(), x[-1].max())
-    print("-")
+    zs = torch.from_numpy(np.load(files[-1]))
+    z.append(zs.float().unsqueeze(0))
   res = [z, image_stroke, image_mask, label_stroke, label_mask]
-  return [torch.from_numpy(np.stack(r)) for r in res]
+  return [torch.cat(r) for r in res]
 
 
 if __name__ == "__main__":
@@ -211,34 +215,81 @@ if __name__ == "__main__":
     help='Which GPU(s) to use. (default: `0`)')
   args = parser.parse_args()
   set_cuda_devices(args.gpu_id)
+
   name_list = open(args.name_list, "r").readlines()
   z, image_stroke, image_mask, label_stroke, label_mask = \
     read_data(args.data_dir, name_list)
+  param_dict = dict(latent_strategy="mixwp",
+                    optimizer='adam',
+                    n_iter=50,
+                    base_lr=0.002)
   print(z.shape, image_stroke.shape, image_mask.shape, label_stroke.shape, label_mask.shape)
   G_name = "stylegan2_ffhq"
   DIR = "predictors/pretrain/"
-  G = build_generator(G_name)
-  P = build_predictor("face")
-  SE_full = load_semantic_extractor(f"{DIR}/{G_name}_LSE.pth")
-  SE_fewshot = load_semantic_extractor(f"{DIR}/{G_name}_8shot_LSE.pth")
-  for i in range(z.shape[0]):
-    _, fused_label, _, int_label, ext_label = ImageEditing.fuse_stroke(
+  G = build_generator(G_name).net
+  P = build_predictor("face_seg")
+  SE_full = load_semantic_extractor(f"{DIR}/{G_name}_LSE.pth").cuda()
+  SE_fewshot = load_semantic_extractor(f"{DIR}/{G_name}_8shot_LSE.pth").cuda()
+
+  proc = lambda x : ((bu(x.detach().cpu(), 256) + 1) / 2)
+  vizproc = lambda x : (bu(segviz_torch(
+    x.detach().cpu()).unsqueeze(0), 256))
+  origins, labels, baselines, fewshots, fulls = [], [], [], [], []
+  for i in tqdm(range(z.shape[0])):
+    zs = z[i].cuda()
+    with torch.no_grad():
+      wp = EditStrategy.z_to_wp(
+        G, zs, in_type="zs", out_type="notrunc-wp")
+
+    res = ImageEditing.fuse_stroke(
       G, SE_full, P, wp,
       image_stroke[i], image_mask[i],
       label_stroke[i], label_mask[i])
+    origins.append(proc(res["origin_image"]))
+    labels.append(vizproc(res["ext_label"]))
+    labels.append(vizproc(res["fused_ext_label"]))
 
-    _, wp = ImageEditing.sseg_edit(
-      G, zs, fused_label, label_mask, SE_full,
-      op="internal",
-      latent_strategy="mixwp",
-      optimizer='adam',
-      n_iter=50,
-      base_lr=0.01)
+    fused_label_fewshot = ImageEditing.fuse_stroke(
+      G, SE_fewshot, None, wp,
+      image_stroke[i], image_mask[i],
+      label_stroke[i], label_mask[i])["fused_int_label"]
 
-    image, feature = G.synthesis(wp.cuda(), generate_feature=True)
-    label = SE(feature)[-1].argmax(1)
-    image = torch2image(image)[0]
-    label_viz = segviz_numpy(torch2numpy(label))
-    zs = zs.detach().cpu().view(-1).numpy().tolist()
-    imwrite(f"{p}_new-image.png", image) # generated
-    imwrite(f"{p}_new-label.png", label_viz)
+    wp_full = ImageEditing.sseg_edit(
+      G, zs, res["fused_int_label"], label_mask, SE_full,
+      op="internal", **param_dict)[1]
+
+    wp_fewshot = ImageEditing.sseg_edit(
+      G, zs, fused_label_fewshot, label_mask, SE_full,
+      op="internal", **param_dict)[1]
+
+    wp_baseline = ImageEditing.sseg_edit(
+      G, zs, res["fused_ext_label"], label_mask, P,
+      op="external", **param_dict)[1]
+
+    with torch.no_grad():
+      image = G.synthesis(wp_baseline)
+      baselines.extend([proc(image), vizproc(P(image, size=256))])
+
+      image, feature = G.synthesis(wp_fewshot, generate_feature=True)
+      label = SE_fewshot(feature, size=256)[-1].argmax(1)
+      fewshots.extend([proc(image), vizproc(label)])
+
+      image, feature = G.synthesis(wp_full, generate_feature=True)
+      label = SE_fewshot(feature, size=256)[-1].argmax(1)
+      fulls.extend([proc(image), vizproc(label)])
+
+  origins = vutils.make_grid(torch.cat(origins),
+    nrow=1, padding=10, pad_value=255)
+  labels = vutils.make_grid(torch.cat(labels),
+    nrow=2, padding=10, pad_value=255)
+  baselines = vutils.make_grid(torch.cat(baselines),
+    nrow=2, padding=10, pad_value=255)
+  fewshots = vutils.make_grid(torch.cat(fewshots),
+    nrow=2, padding=10, pad_value=255)
+  fulls = vutils.make_grid(torch.cat(fulls),
+    nrow=2, padding=10, pad_value=255)
+  pads = torch.zeros((3, baselines.size(1), 40))
+  pads.fill_(255)
+  vutils.save_image(torch.cat([origins, pads, labels, pads,
+    baselines, pads, fewshots, pads, fulls], 2),
+    "results/spie_ffhq.png")

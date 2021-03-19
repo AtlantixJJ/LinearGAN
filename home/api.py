@@ -252,10 +252,10 @@ class EditAPI(object):
     image_mask = preprocess_mask(image_mask, size).cuda()
     label_stroke = preprocess_label(label_stroke, SE.n_class, size)
     label_mask = preprocess_mask(label_mask, size).squeeze(1).cuda()
-    _, fused_label, _, int_label, _ = ImageEditing.fuse_stroke(
+    fused_int_label = ImageEditing.fuse_stroke(
       G, SE, None, wp,
       image_stroke[0], image_mask[0],
-      label_stroke[0], label_mask[0])
+      label_stroke[0], label_mask[0])["fused_int_label"]
     zs, wp = ImageEditing.sseg_edit(
       G, zs, fused_label, label_mask, SE,
       op="internal",

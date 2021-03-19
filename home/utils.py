@@ -72,7 +72,7 @@ def preprocess_label(arr, n_class, size=None):
   for i in range(n_class):
     c = get_label_color(i)
     t[color_mask(x, c)] = i
-  return t.unsqueeze(0).cuda()
+  return t.unsqueeze(0)
 
 
 def preprocess_image(arr, size=None):

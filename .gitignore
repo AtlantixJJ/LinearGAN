@@ -4,4 +4,5 @@ expr
 results
 data
 *.sqlite3
+*.swp
 *__pycache__
