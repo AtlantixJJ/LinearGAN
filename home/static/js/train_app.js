@@ -140,8 +140,8 @@ function setAnn() {
   for (var i = 0; i < images.length; i ++) {
     var col = i % ncols;
     panel.appendChild(imageDiv(
-      images[images.length - 1],
-      anns[anns.length - 1],
+      images[i],
+      anns[i],
       size,
       col * padding,
       true));
@@ -207,7 +207,7 @@ function onTrain() {
   } else if (training_started == true) {
     var dic = {
       model : allModel[curModelID],
-      action : "stop"}
+      action : "pause"}
     $.post("train/ctrl", dic, checkSuccessful, 'json');
   }
 }
@@ -227,9 +227,13 @@ function setValidation(data) {
       col * padding,
       false));
   }
+  $('#val-panel').css('opacity', 1.0);
+  val_spinner.stop();
 }
 
 function onValidate() {
+  val_spinner.spin(document.getElementById("val-spin"));
+  $('#val-panel').css('opacity', 0.7);
   $.post(
     'train/val',
     {model : allModel[curModelID]},
@@ -390,7 +394,6 @@ function download(data, filename) {
 }
 
 function canvas_auto_resize() {
-  console.log("canvas");
   var x = document.getElementById('image-container');
   var h = x.clientHeight;
   var w = x.clientWidth;

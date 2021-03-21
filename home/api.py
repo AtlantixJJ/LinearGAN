@@ -34,10 +34,7 @@ class TrainingThread(threading.Thread):
     self.learner = learner
     self.lock = threading.Lock()
     self.max_iter = max_iter
-    self.features = []
-    self.labels = []
-    self.labels_mask = []
-    self.running = False
+    self.reset()
 
   def add_annotation(self, feature, label, label_mask):
     self.lock.acquire()
@@ -51,6 +48,7 @@ class TrainingThread(threading.Thread):
   def reset(self, features=[], labels=[], labels_mask=[]):
     self.lock.acquire()
     self.count = 0
+    self.exit = False
     self.running = False
     self.labels = labels
     self.features = features
@@ -77,11 +75,16 @@ class TrainingThread(threading.Thread):
       self.lock.release()
       self.start()
       return True
-    elif cmd == "stop":
+    elif cmd == "pause":
       if not self.running:
         return False
       self.lock.acquire()
       self.running = False
+      self.lock.release()
+      return True
+    elif cmd == "stop":
+      self.lock.acquire()
+      self.exit = True
       self.lock.release()
       return True
     elif cmd == "val":
@@ -100,13 +103,20 @@ class TrainingThread(threading.Thread):
 
   def run(self):
     self._check_has_data()
+    self.count = 0
+    self.exit = False
+    optim = self.learner.configure_optimizers()[0][0]
     print("=> Training thread started")
-    for i in range(self.max_iter):
-      while not self.running:
+    while not self.exit:
+      while not self.running: # wait for running
         time.sleep(1)
       self.lock.acquire()
-      self.learner.training_step(None, i)
+      optim.zero_grad()
+      self.learner.training_step(None, self.count).backward()
+      optim.step()
+      self.count += 1
       self.lock.release()
+      time.sleep(1e-3)
     print("=> Training thread ended")
 
 
@@ -150,10 +160,11 @@ class TrainAPI(object):
   
   def get_validation(self, model_name):
     """Return validation images. """
-    print("=> [TrainerAPI] validate")
+    train_thread = self.training_thread[model_name]
+    n_iter = train_thread.count
+    print(f"=> [TrainerAPI] validate on iteration {n_iter}")
     G = self.Gs[model_name]
     SE = self.SE[model_name]
-    train_thread = self.training_thread[model_name]
     image, segviz = train_thread.send_command("val")
     print("=> [TrainerAPI] done")
     return image, segviz
@@ -185,10 +196,11 @@ class TrainAPI(object):
     zs = torch.from_numpy(zs).float().cuda()
     size = self.MA.models_config[model_name]["output_size"]
     wp = EditStrategy.z_to_wp(G, zs, in_type="zs", out_type="notrunc-wp")
-    label_stroke = preprocess_label(ann, SE.n_class, size)
-    image, feature = G.synthesis(wp, generate_feature=True)
-    label_mask = preprocess_mask(ann_mask, size).squeeze(1).cuda()
-
+    label_stroke = preprocess_label(ann, SE.n_class, size).cuda()
+    with torch.no_grad():
+      image, feature = G.synthesis(wp, generate_feature=True)
+      label_mask = preprocess_mask(ann_mask, size).squeeze(1).cuda()
+    
     # add data into training thread
     AddDataThread(train_thread, feature, label_stroke, label_mask).start()
 
@@ -208,8 +220,8 @@ class ModelAPI(object):
     for name, mc in self.models_config.items():
       G = build_generator(mc["model_name"]).net
       self.Gs[name] = G # [TODO]: MultiGPU
-      SE = load_semantic_extractor(mc["SE"])
-      SE.cuda().eval()
+      SE = None if len(mc["SE"]) == 0 else \
+        load_semantic_extractor(mc["SE"]).cuda()
       self.SE[name] = SE
       SE = create_fewshot_LSE(G)
       SE.cuda().train()
