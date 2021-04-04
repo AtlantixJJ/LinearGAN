@@ -38,9 +38,9 @@ class FocalLoss(nn.Module):
 def segloss(segs, label, loss_fn):
   """The final version of loss."""
   segloss = []
-  size = label.size(3)
+  size = label.size(2)
   for seg in segs:
-    seg = op.bu(seg, size) if seg.size(2) == size else seg
+    seg = op.bu(seg, size) if seg.size(2) != size else seg
     segloss.append(loss_fn(seg, label))
   return segloss
 

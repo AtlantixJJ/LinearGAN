@@ -1,6 +1,6 @@
 import sys
 sys.path.insert(0, ".")
-import argparse, tqdm, glob, os, copy
+import argparse, tqdm, glob, os, copy, math
 import numpy as np
 import matplotlib.pyplot as plt
 import torch, cv2
@@ -79,15 +79,18 @@ def get_result_G(G_name, z):
     text_set.append(f"{i}")
   text_set[-1] = "LSE"
   text_set.append(formal_name(G_name))
+  is_face = "ffhq" in G_name or "celebahq" in G_name
   text_set.append("UNet" if is_face else "DeeplabV3")
   image_set.append(torch2image(bu(image, 256))[0])
   image_set.append(label_viz)
   return image_set, text_set
 
 
+
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
-  parser.add_argument("--dir", default="expr/semantics")
+  parser.add_argument("--model-dir", default="expr/semantics_layerwise")
+  parser.add_argument("--out-dir", default="results/layerplot/layer_loss")
   parser.add_argument("--place", default="paper", help="paper | appendix")
   parser.add_argument("--viz-model", default="LSE")
   parser.add_argument("--repeat", default=2, type=int)
@@ -95,14 +98,19 @@ if __name__ == "__main__":
   parser.add_argument("--show-weight", default=0, type=int)
   args = parser.parse_args()
 
-  G_names = "pggan_celebahq,stylegan_celebahq,stylegan2_ffhq"
-  G_names = "pggan_church,stylegan_church,stylegan2_church,pggan_bedroom,stylegan_bedroom,stylegan2_bedroom"
+  G_names = "pggan_celebahq,stylegan_celebahq,stylegan2_ffhq,pggan_church,stylegan_church,stylegan2_church,pggan_bedroom,stylegan_bedroom,stylegan2_bedroom"
   # setup and constants
-  data_dir = args.dir
+  data_dir = args.model_dir
   Gs = {G_name : build_generator(G_name).net for G_name in G_names.split(",")}
   is_face = "ffhq" in G_names or "celebahq" in G_names
-  net = FaceSegmenter if is_face else SceneSegmenter
-  Ps = {G_name : net(model_name=G_name) for G_name in G_names.split(",")}
+  unet = FaceSegmenter()
+
+  def P_from_name(G_name):
+    if "ffhq" in G_name or "celebahq" in G_name:
+      return unet
+    return SceneSegmenter(model_name=G_name)
+
+  Ps = {G_name : P_from_name(G_name) for G_name in G_names.split(",")}
   label_list = CELEBA_CATEGORY if is_face else []
   n_class = len(label_list)
   N_repeat = args.repeat
@@ -138,9 +146,6 @@ if __name__ == "__main__":
         paper_text.append(text_set)
       res[G_name] = (paper_img, paper_text)
 
-  segnet_name = "UNet" if is_face else "DeeplabV3"
-  imageset_headers = ["image", segnet_name] + list(viz_models.keys())
-
   imsize = 256
   text_height = 33
   line_height = 10
@@ -149,8 +154,10 @@ if __name__ == "__main__":
   for G_name, image_text in res.items():
     image_set_num = len(image_text[0][0])
     N_col = image_set_num
+    if N_col > 10:
+      N_col = math.ceil(N_col / 2)
     N_imgs = image_set_num * N_repeat
-    N_row = N_imgs // N_col
+    N_row = math.ceil(N_imgs / N_col)
     CW = imsize + pad
     CH = imsize + text_height
     canvas_width = imsize * N_col + pad * (N_col - 1)
@@ -164,9 +171,8 @@ if __name__ == "__main__":
       x = torch.nn.functional.softplus(viz_models[G_name].layer_weight)
       x = x / x.max() # this is max rather than sum
 
+    col = row = 0
     for idx, (image_set, text_set) in enumerate(zip(*image_text)):
-      col = 0
-      row = idx
       for i, (img, text) in enumerate(zip(image_set, text_set)):
         stx = text_height + CH * row
         if args.show_weight:
@@ -175,11 +181,9 @@ if __name__ == "__main__":
         sty = CW * col
         edy = sty + imsize
 
-        if row == 0:
-          # labeling
-          put_text(canvas, text,
-            (CW * col + imsize // 2,
-            CH * row + text_height // 2))
+        put_text(canvas, text,
+          (CW * col + imsize // 2,
+          CH * row + text_height // 2))
 
         if args.show_weight and row == 0 and i < x.shape[0]:
           # weight labeling
@@ -192,13 +196,15 @@ if __name__ == "__main__":
         #print(canvas.shape, row, col, stx, edx, sty, edy)
         canvas[stx:edx, sty:edy] = img
         col += 1
+        if col == N_col:
+          col = 0
+          row += 1
 
-    sizes = (N_col, N_row * 1.1)
-    sizes = (1.3 * sizes[0], 1.3 * sizes[1])
+    sizes = (N_col, N_row * 1.2)
     fig = plt.figure(figsize=sizes) # paper: 11, 7
     plt.imshow(canvas)
     plt.axis("off")
     plt.tight_layout()
-    plt.savefig(f"results/layerplot/{G_name}_{args.place}_{args.repeat}_{args.show_weight}.pdf")
+    plt.savefig(f"{args.out_dir}/{G_name}_{args.place}_{args.repeat}_{args.show_weight}.pdf")
     plt.close()
 

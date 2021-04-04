@@ -120,7 +120,7 @@ class TrainingThread(threading.Thread):
     print("=> Training thread ended")
 
 
-def create_fewshot_LSE(G, n_class=9):
+def create_fewshot_LSE(G, n_class=36):
   """Create a LSE model for fewshot learning purpose."""
   with torch.no_grad():
     _, features = sample_image_feature(G)

@@ -6,6 +6,16 @@ parser.add_argument('--gpu', default='0/1/2/3/4/5/6/7')
 args = parser.parse_args()
 
 
+def layerwise_LSE():
+  cmds = []
+  srcmd = "python train.py --G {G} --SE {SE} --eval 0 --expr expr/semantics_layerwise --loss-type normallayer"
+  Gs = "stylegan2_bedroom,stylegan_bedroom,pggan_bedroom,stylegan2_church,stylegan_church,pggan_church,pggan_celebahq,stylegan_celebahq,stylegan2_ffhq".split(",")
+  for G in Gs:
+    cmd = srcmd.format(G=G, SE="LSE")
+    cmds.append(cmd)
+  return cmds
+
+
 def sr_LSE_arch():
   cmds = []
   srcmd = "python train.py --G {G} --SE LSE --lr 0.001 --loss-type {loss_type} --layer-weight {layer_weight} --latent-strategy trunc-wp"
@@ -76,12 +86,12 @@ def train_fewshot():
 
 def scs():
   cmds = []
-  Gs = ["stylegan2_ffhq", "stylegan2_bedroom", "stylegan2_church"]
+  Gs = ["stylegan2_bedroom", "stylegan2_church", "stylegan2_ffhq"]
   n_inits = [10, 100, 100]
   SE_format = "expr/fewshot/{G}_LSE_fewshot/r{rind}_n{num_sample}.pth"
   evalcmd = "python manipulation/scs.py --SE {SE} --n-init {n_init}"
   for rind in range(5):
-    for num_sample in [1, 8, 4, 16]:
+    for num_sample in [1, 8]:#, 4, 16]:
       for G, n_init in zip(Gs, n_inits):
         SE = SE_format.format(G=G, rind=rind, num_sample=num_sample)
         cmds.append(evalcmd.format(SE=SE, rind=rind, n_init=n_init))
@@ -118,6 +128,7 @@ def generator_semantics():
 
 
 funcs = {
+  "layerwise_LSE" : layerwise_LSE,
   "sr_LSE_arch" : sr_LSE_arch,
   "sr_NSE_arch" : sr_NSE_arch,
   "sr_all_method" : sr_all_method,

@@ -90,10 +90,14 @@ class SELearner(pl.LightningModule):
     self.save_dir = save_dir
 
     if loss_type == 'focal':
-      self.loss_fn_layer = loss.FocalLoss(True)
+      if "layer" in loss_type:
+        self.loss_layer_weight = 0.1
+        self.loss_fn_layer = loss.FocalLoss(True)
       self.loss_fn_final = loss.FocalLoss(False)
     else:
-      self.loss_fn_layer = F.binary_cross_entropy_with_logits
+      if "layer" in loss_type:
+        self.loss_layer_weight = 0.1
+        self.loss_fn_layer = F.cross_entropy
       self.loss_fn_final = F.cross_entropy
     
     self.reset()
@@ -129,15 +133,19 @@ class SELearner(pl.LightningModule):
   def training_step(self, batch, batch_idx):
     segs, label = self(batch)
     seg = op.bu(segs[-1], label.size(2))
-    segloss = self.loss_fn_final(seg, label)
 
-    #total_loss = 0
-    #n_layers = len(segloss) - 1 # The last one is final segmentation
-    #for i in range(n_layers + 1): # 0 ~ len(segloss) - 1
-    #  layer = 'final' if i == n_layers else f'layer{i}'
-    #  self.log(f'CE/{layer}', segloss[i])
-    #  total_loss = total_loss + segloss[i]
-    total_loss = segloss
+    if hasattr(self, "loss_fn_layer"):
+      segloss = loss.segloss(segs, label, self.loss_fn_layer)
+      n_layers = len(segloss) - 1 # The last one is final segmentation
+      total_loss = 0
+      for i in range(len(segloss)): # 0 ~ len(segloss) - 1
+        layer = 'final' if i == n_layers else f'{i}'
+        layer_loss = segloss[i] * self.loss_layer_weight \
+          if i < n_layers else segloss[i]
+        self.log(f'layer/{layer}', layer_loss)
+        total_loss = total_loss + layer_loss
+    else:
+      total_loss = self.loss_fn_final(seg, label)
     self.log("main/total", total_loss)
 
     dt = seg.argmax(1).detach()

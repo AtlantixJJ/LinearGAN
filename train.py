@@ -77,11 +77,12 @@ def main(args):
   trainer.fit(learner, dm)
   save_semantic_extractor(SE, f"{DIR}/{args.G}_{args.SE}.pth")
 
-  res_dir = DIR.replace(args.expr, "results/semantics/")
-  num = 10000
-  mIoU, c_ious = evaluate_SE(SE, G.net, P,
-    resolution, num, args.latent_strategy)
-  write_results(f"{res_dir}_els{args.latent_strategy}.txt", mIoU, c_ious)
+  if args.eval == 1:
+    res_dir = DIR.replace(args.expr, "results/semantics/")
+    num = 10000
+    mIoU, c_ious = evaluate_SE(SE, G.net, P,
+      resolution, num, args.latent_strategy)
+    write_results(f"{res_dir}_els{args.latent_strategy}.txt", mIoU, c_ious)
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
@@ -111,6 +112,9 @@ if __name__ == "__main__":
     help='If the script is run on slurm.')
   parser.add_argument('--gpu-id', type=str, default='0',
     help='GPUs to use. (default: %(default)s)')
+  # evaluation settings
+  parser.add_argument('--eval', type=int, default=1,
+    help="Whether to evaluate after training.")
   args = parser.parse_args()
   from lib.misc import set_cuda_devices
   set_cuda_devices(args.gpu_id)

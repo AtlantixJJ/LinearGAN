@@ -7,13 +7,6 @@
             "out_dim" : 3,
             "output_size" : 400,
             "SE" : ""
-        },
-        "Anime": {
-            "model_name" : "stylegan_animeface",
-            "gpu" : 0,
-            "out_dim" : 3,
-            "output_size" : 400,
-            "SE" : ""
         }
     }
 }
