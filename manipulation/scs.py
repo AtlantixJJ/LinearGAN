@@ -1,5 +1,5 @@
 # python 3.7
-"""Semantic-Precise Image Editing."""
+"""Semantic Conditional Sampling."""
 
 import sys, os
 sys.path.insert(0, ".")

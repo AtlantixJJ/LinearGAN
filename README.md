@@ -13,3 +13,8 @@ The pipeline of the Linear Semantic Extractor is shown below.
 
 
 ##
+
+This work is built upon the following repos:
+
+GenForce
+MaskGAN

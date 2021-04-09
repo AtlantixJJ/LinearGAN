@@ -1,3 +1,5 @@
+"""The portal of web application.
+"""
 #!/usr/bin/env python
 import os
 import sys

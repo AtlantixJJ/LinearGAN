@@ -1,3 +1,5 @@
+"""Make pytorch saved files compatible with previous version.
+"""
 import sys, os, torch, glob
 fpath = sys.argv[1]
 

@@ -1,3 +1,5 @@
+"""Utility script for copying pytorch saved files.
+"""
 import sys, os, torch, glob, argparse
 
 parser = argparse.ArgumentParser()

@@ -11,7 +11,7 @@ from lib.op import generate_images, bu
 from models.helper import build_generator, load_semantic_extractor
 from predictors.face_segmenter import FaceSegmenter
 from predictors.scene_segmenter import SceneSegmenter
-from evaluate import evaluate_predictions, aggregate_iou, write_results
+from evaluate import *
 from manipulation.scs import read_labels
 
 LSE_format = "expr/semantics/{G_name}_LSE_lnormal_lstrunc-wp_lwsoftplus_lr0.001/{G_name}_LSE.pth"

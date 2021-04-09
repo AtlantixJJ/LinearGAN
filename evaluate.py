@@ -1,3 +1,5 @@
+"""The evaluation script.
+"""
 import sys, argparse, glob, os
 sys.path.insert(0, ".")
 import torch

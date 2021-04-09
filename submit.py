@@ -1,3 +1,5 @@
+"""Easy execution script.
+"""
 import os, argparse
 
 parser = argparse.ArgumentParser()

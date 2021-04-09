@@ -1,3 +1,5 @@
+"""Training few-shot LSE.
+"""
 import sys, argparse
 sys.path.insert(0, ".")
 import torch, os

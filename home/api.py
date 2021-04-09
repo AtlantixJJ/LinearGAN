@@ -11,7 +11,7 @@ from lib.op import sample_image_feature, torch2image, torch2numpy, bu
 from lib.misc import imwrite
 from lib.visualizer import segviz_numpy, get_label_color
 from models.semantic_extractor import LSE, SEFewShotLearner
-from manipulation.spie import ImageEditing
+from manipulation.sie import ImageEditing
 from manipulation.strategy import EditStrategy
 from train_fewshot import get_features
 
@@ -269,7 +269,7 @@ class EditAPI(object):
       image_stroke[0], image_mask[0],
       label_stroke[0], label_mask[0])["fused_int_label"]
     zs, wp = ImageEditing.sseg_edit(
-      G, zs, fused_label, label_mask, SE,
+      G, zs, fused_int_label, label_mask, SE,
       op="internal",
       latent_strategy="mixwp",
       optimizer='adam',

@@ -1,5 +1,5 @@
 # python 3.7
-"""Semantic-Precise Image Editing."""
+"""Semantic Image Editing."""
 
 import sys, glob
 sys.path.insert(0, ".")
@@ -154,34 +154,6 @@ class ImageEditing(object):
         "int_label" : int_label,
         "ext_label" : ext_label}
 
-  @staticmethod
-  def fuse_stroke_batch(G, SE, P, wps, image_strokes, image_masks, label_strokes, label_masks):
-    """Not implemented
-    """
-    int_label = []
-    ext_label = []
-    fused_label = []
-    fused_image = []
-    origin_image = []
-    with torch.no_grad():
-      for i in range(zs.shape[0]):
-        fused_image, fused_label, origin_image, int_label, ext_label
-        res = fuse_stroke(G, SE, P, wps[i],
-          image_strokes[i], image_masks[i], label_strokes[i], label_masks[i])
-        int_label.append(est_label)
-        ext_label.append(P(image, size=mask.shape[1])[0])
-        tar = ((1 - mask) * est_label + mask * label_strokes[i:i+1]).long()
-        fused_label.append(tar)
-        mask = image_masks[i:i+1]
-        img = (1 - mask) * image.cpu() + mask * image_strokes[i:i+1]
-        fused_image.append(img)
-    fused_image = torch.cat(fused_image).float()
-    fused_label = torch.cat(fused_label)
-    ext_label = torch.cat(ext_label)
-    int_label = torch.cat(int_label)
-    origin_image = torch.cat(origin_image)
-    return origin_image, fused_image, fused_label, int_label, ext_label
-
 
 def read_data(data_dir, name_list, n_class=15):
   z, image_stroke, label_stroke, image_mask, label_mask = [], [], [], [], []
@@ -207,9 +179,9 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument('--data-dir', type=str, default='data/collect_ffhq',
     help='The input directory.')
-  parser.add_argument('--name-list', type=str, default='figure/spie_list.txt',
+  parser.add_argument('--name-list', type=str, default='figure/sie_list.txt',
     help='The list of names.')
-  parser.add_argument('--out-dir', type=str, default='results/spie',
+  parser.add_argument('--out-dir', type=str, default='results/sie',
     help='The output directory.')
   parser.add_argument('--gpu-id', default='0',
     help='Which GPU(s) to use. (default: `0`)')
@@ -292,4 +264,4 @@ if __name__ == "__main__":
   pads.fill_(255)
   vutils.save_image(torch.cat([origins, pads, labels, pads,
     baselines, pads, fewshots, pads, fulls], 2),
-    "results/spie_ffhq.png")
+    "results/sie_ffhq.png")
