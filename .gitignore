@@ -1,6 +1,6 @@
 models/pretrain
-predictors/pretrain
 expr
+old_expr
 results
 data
 *.sqlite3

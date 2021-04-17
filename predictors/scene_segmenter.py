@@ -46,7 +46,7 @@ class SceneSegmenter(BasePredictor):
     """
     x = torch.stack([self.input_transform((1 + i) / 2)
       for i in images])
-    y = self.net(x, stride=2)[0]
+    y = self.net(x)[0]
     if hasattr(self, "label_indice"):
       y = y[:, self.label_indice]
     if y.size(2) != size:
@@ -61,7 +61,7 @@ class SceneSegmenter(BasePredictor):
     """
     x = torch.stack([self.input_transform((1 + i) / 2)
       for i in images])
-    y = self.net(x, stride=2)[0]
+    y = self.net(x)[0]
     if hasattr(self, "label_indice"):
       y = y[:, self.label_indice]
     if y.size(2) != size:
