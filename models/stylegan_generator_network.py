@@ -391,7 +391,7 @@ class SynthesisModule(nn.Module):
     """Gets number of feature maps according to current resolution."""
     return min(self.fmaps_base // res, self.fmaps_max)
 
-  def forward(self, w, generate_feature=False):
+  def forward(self, w, generate_feature=False, generate_sw=False):
     if w.ndim != 3 or w.shape[1:] != (self.num_layers, self.w_space_dim):
       raise ValueError(f'The input tensor should be with shape [batch_size, '
                        f'num_layers, w_space_dim], where '
@@ -400,6 +400,9 @@ class SynthesisModule(nn.Module):
                        f'But {w.shape} is received!')
 
     feats = []
+    unmod_features = []
+    stylemod_weights = []
+    
     lod = self.lod.cpu().tolist()
     for res_log2 in range(self.init_res_log2, self.final_res_log2 + 1):
       if res_log2 + lod <= self.final_res_log2:
@@ -408,8 +411,16 @@ class SynthesisModule(nn.Module):
           x = self.__getattr__(f'layer{2 * block_idx}')(w[:, 2 * block_idx])
         else:
           x = self.__getattr__(f'layer{2 * block_idx}')(x, w[:, 2 * block_idx])
-        x = self.__getattr__(f'layer{2 * block_idx + 1}')(
-            x, w[:, 2 * block_idx + 1])
+        res = self.__getattr__(f'layer{2 * block_idx + 1}')(
+            x, w[:, 2 * block_idx + 1], generate_sw)
+        if generate_sw:
+          x = res[0]
+          layer = self.__getattr__(f'layer{2 * block_idx + 1}')
+          dense = layer.epilogue.style_mod.dense
+          stylemod_weights.append(dense.fc.weight.detach())
+          unmod_features.append(res[1])
+        else:
+          x = res
         image = self.__getattr__(f'output{block_idx}')(x)
       else:
         image = self.upsample(image)
@@ -418,6 +429,8 @@ class SynthesisModule(nn.Module):
     image = self.final_activate(image)
     if generate_feature:
       return image, feats
+    if generate_sw:
+      return unmod_features, stylemod_weights
     return image
 
   def mask_latent(self, ws, masks):
@@ -619,12 +632,14 @@ class EpilogueBlock(nn.Module):
                                 f'{normalization_fn}!')
     self.style_mod = StyleModulationLayer(channels, w_space_dim=w_space_dim)
 
-  def forward(self, x, w):
+  def forward(self, x, w, get_unmod=False):
     x = self.apply_noise(x)
     x = x + self.bias.view(1, -1, 1, 1)
     x = self.activate(x)
-    x = self.norm(x)
-    x = self.style_mod(x, w)
+    unmod = self.norm(x)
+    x = self.style_mod(unmod, w)
+    if get_unmod:
+      return x, unmod
     return x
 
 
@@ -793,10 +808,10 @@ class ConvBlock(nn.Module):
                                   w_space_dim=w_space_dim,
                                   randomize_noise=randomize_noise)
 
-  def forward(self, x, w):
+  def forward(self, x, w, get_unmod=False):
     x = self.conv(x) * self.scale
-    x = self.epilogue(x, w)
-    return x
+    res = self.epilogue(x, w, get_unmod)
+    return res
 
 
 class LastConvBlock(nn.Module):

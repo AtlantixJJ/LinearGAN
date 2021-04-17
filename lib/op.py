@@ -127,7 +127,7 @@ def image2torch(x):
   """Process [0, 255] (N, H, W, C) numpy array format 
      image into [0, 1] scale (N, C, H, W) torch tensor.
   """
-  y = torch.from_numpy(x).float() / 127.5 - 1
+  y = torch.from_numpy(x).float() / 255.
   if len(x.shape) == 3 and x.shape[2] == 3:
     return y.permute(2, 0, 1).unsqueeze(0)
   if len(x.shape) == 4:

@@ -95,10 +95,10 @@ def heatmap_numpy(image):
   """Get the heatmap of the image
 
   Args:
-    image : A numpy array of shape (N, H, W) and scale in [0, 1]
+    image : A numpy array of shape (N, H, W) and scale in [-1, 1]
 
   Returns:
-    A image of shape (N, H, W, 3) in [0, 255] scale
+    A image of shape (N, H, W, 3) in [0, 1] scale
   """
   image1 = image.copy()
   mask1 = image1 > 0
