@@ -102,6 +102,7 @@ if __name__ == "__main__":
   parser.add_argument("--place", default="paper", help="paper | appendix")
   parser.add_argument("--viz-models", default="LSE,NSE-1,NSE-2")
   parser.add_argument("--repeat", default=1, type=int)
+  parser.add_argument("--scale", default=1.0, type=float)
   parser.add_argument("--row-set-num", default=1, type=int)
   parser.add_argument("--gpu-id", default=0, type=int)
   args = parser.parse_args()
@@ -187,6 +188,7 @@ if __name__ == "__main__":
       """
 
   sizes = (N_col, N_row * 1.05)
+  sizes = (sizes[0] * args.scale, sizes[1] * args.scale)
   fig = plt.figure(figsize=sizes) # paper: 11, 7
   plt.imshow(canvas)
   plt.axis("off")

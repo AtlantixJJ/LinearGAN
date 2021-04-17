@@ -8,7 +8,7 @@ from evaluate import read_results
 def get_table_suit():
   params = []
   for G in ["stylegan2_church", "stylegan2_bedroom", "stylegan2_ffhq"]:
-    for n in [1, 4, 8, 16]:
+    for n in [1, 8]:#[1, 4, 8, 16]:
       for r in range(5):
         params.append((G, n, r))
   return params # G, n, r
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     if mIoU > 0:
       dic[G][n].append(mIoU)
 
-
+  print(dic)
   vdic = {}
   for G in dic.keys():
     vdic[G] = {}

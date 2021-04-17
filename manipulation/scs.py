@@ -61,8 +61,9 @@ class SCS(object):
       z, wp = edit_strategy.to_std_form()
       seg = get_seg(wp, tar.shape[2])
       celoss = torch.nn.functional.cross_entropy(seg, tar)
-      regloss = 1e-4 * ((z-z0) ** 2).sum() / z.shape[0]
-      edit_strategy.step(celoss + regloss)
+      regloss = 1e-3 * ((z-z0) ** 2).sum()
+      priorloss = 1e-3 * (z ** 2).sum() / z.shape[0]
+      edit_strategy.step(celoss + priorloss + regloss)
     #print(f"=> Final loss: {celoss + regloss:.3f}")
     return z, wp
 
@@ -120,7 +121,7 @@ if __name__ == "__main__":
     help='Which GPU(s) to use. (default: `0`)')
   parser.add_argument('--optimizer', type=str, default="adam",
     help='The optimizer type.')
-  parser.add_argument('--base-lr', type=float, default=0.01,
+  parser.add_argument('--base-lr', type=float, default=0.002,
     help='The base learning rate of optimizer.')
   parser.add_argument('--n-iter', default=50, type=int,
     help='The number of iteration in editing.')

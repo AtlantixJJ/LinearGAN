@@ -264,4 +264,4 @@ if __name__ == "__main__":
   pads.fill_(255)
   vutils.save_image(torch.cat([origins, pads, labels, pads,
     baselines, pads, fewshots, pads, fulls], 2),
-    "results/sie_ffhq.png")
+    f"{args.out_dir}/ffhq.png")
