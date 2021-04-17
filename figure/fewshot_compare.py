@@ -60,7 +60,7 @@ if __name__ == "__main__":
   parser.add_argument("--dir", default="results/fewshot", help="")
   parser.add_argument("--force-calc", default=0, type=int)
   args = parser.parse_args()
-  full_res = {
+  full_res = { # substitute the results of fully trained LSE here
     "stylegan2_ffhq" : 79.7,
     "stylegan2_bedroom" : 53.9,
     "stylegan2_church" : 37.7}

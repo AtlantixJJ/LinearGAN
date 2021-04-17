@@ -93,7 +93,7 @@ def scs():
   SE_format = "expr/fewshot/{G}_LSE_fewshot/r{rind}_n{num_sample}.pth"
   evalcmd = "python manipulation/scs.py --SE {SE} --n-init {n_init}"
   for rind in range(5):
-    for num_sample in [1, 8]:#, 4, 16]:
+    for num_sample in [1, 4, 8, 16]:
       for G, n_init in zip(Gs, n_inits):
         SE = SE_format.format(G=G, rind=rind, num_sample=num_sample)
         cmds.append(evalcmd.format(SE=SE, rind=rind, n_init=n_init))

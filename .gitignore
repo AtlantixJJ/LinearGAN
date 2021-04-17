@@ -6,3 +6,4 @@ data
 *.sqlite3
 *.swp
 *__pycache__
+*.zip

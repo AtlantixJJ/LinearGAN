@@ -1,6 +1,0 @@
-pggan_bedroom,wall,bed,floor,ceiling,windowpane,curtain,pillow,painting,table,lamp
-pggan_church,building,sky,tree,grass,road,plant
-stylegan2_bedroom,wall,floor,ceiling,bed,windowpane,table,curtain,painting,lamp,cushion,pillow,fan
-stylegan2_church,building,sky,tree,grass,road,plant,person,earth
-stylegan_bedroom,wall,bed,floor,ceiling,windowpane,curtain,pillow,painting,cushion,table,chest,lamp
-stylegan_church,building,sky,tree,grass,road,plant
