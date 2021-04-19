@@ -18,6 +18,8 @@ The pipeline of the Linear Semantic Extractor is shown below.
 
 3. Install [torch-encoding](https://github.com/zhanghang1989/PyTorch-Encoding). `pip3 install git+https://github.com/zhanghang1989/PyTorch-Encoding`.
 
+4. Download [CelebAMask-HQ](https://github.com/switchablenorms/CelebAMask-HQ) dataset.
+
 Folder structure:
 
 ```
@@ -118,9 +120,42 @@ Sampled latent vectors are stored to `results/scs` as `pth` files.
 
 ![SCS(8-shot) on StyleGAN2-Bedroom.](doc/scs_bedroom.png)
 
+## Few-shot Semantic Image Editing
+
+An easy-to-use editing script is still in working.
+But you can edit any generated images using our web interface.
+The editing results are shown in the video below.
+
+<center>
+  <iframe width="960" height="540" src="https://www.youtube.com/embed/Il596wgjUc8" allow="autoplay; encrypted-media" frameborder="0" allowfullscreen></iframe>
+</center>
+
+## Image Editing Web Application
+
+1. Modify the model path in configuration file `home/static/config.json`. You should change the value corresponding to `"SE"` item to your trained LSE model.
+
+2. Run: `python manage.py runserver 0.0.0.0:<port>`.
+
+3. Semantic Image Editing: access `/edit` tab.
+
+4. Train a few-shot LSE: access `/train` tab. This functionality currently does not support model saving.
+The video below shows a demo of training a few-shot LSE:
+
+<center>
+  <video controls="controls" height="400px" loop="loop" autoplay='autoplay' src='doc/LinearGAN_Training.mp4' type="video/mp4">
+		Your browser does not support the video element.
+  </video>
+</center>
+
 ## Common issues
 
 1. If `pytorch-lightning` is giving too much warning like `You have set 17 number of classes which is different from predicted (15) and target (15) number of classes` below, you can disable them using `python -W ignore your_script.py`.
+
+## TODO
+
+1. Upload the data for SCS, SIE and pretrained GAN models.
+
+2. Create easy-to-use scripts for SIE and SCS.
 
 ## Acknowledgement
 

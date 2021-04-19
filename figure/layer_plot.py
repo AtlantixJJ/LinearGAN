@@ -1,3 +1,4 @@
+"""Visualize layer-wise plot."""
 import sys
 sys.path.insert(0, ".")
 import argparse, tqdm, glob, os, copy, math

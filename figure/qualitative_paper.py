@@ -1,3 +1,4 @@
+"""Create qualitative figures used in the paper."""
 import sys
 sys.path.insert(0, ".")
 import argparse, tqdm, glob, os, copy

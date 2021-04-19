@@ -1,3 +1,4 @@
+"""Compare the semantic accuracy of different SCS methods."""
 import torch, sys, os, argparse
 sys.path.insert(0, ".")
 from lib.misc import listkey_convert, str_latex_table, formal_name

@@ -1,3 +1,4 @@
+"""Visualize SCS results."""
 import sys, argparse, glob, os
 sys.path.insert(0, ".")
 import torch

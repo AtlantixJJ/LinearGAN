@@ -1,3 +1,4 @@
+"""Visualize the training evolution of mIoU."""
 import torch, sys, os, argparse, glob
 sys.path.insert(0, ".")
 from lib.misc import formal_name

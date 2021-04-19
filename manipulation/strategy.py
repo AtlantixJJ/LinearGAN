@@ -1,3 +1,4 @@
+"""Optimization strategy of latent space."""
 import torch
 
 

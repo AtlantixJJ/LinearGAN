@@ -1,3 +1,4 @@
+"""Summarize the evaluation of all the semantic extractors."""
 import torch, sys, os, argparse, glob
 sys.path.insert(0, ".")
 import numpy as np
