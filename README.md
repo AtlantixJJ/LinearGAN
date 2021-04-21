@@ -130,13 +130,8 @@ Sampled latent vectors are stored to `results/scs` as `pth` files.
 
 ## Few-shot Semantic Image Editing
 
-An easy-to-use editing script is still in working.
-But you can edit any generated images using our web interface.
-The editing results are shown in the video below.
-
-<center>
-  <iframe width="960" height="540" src="https://www.youtube.com/embed/Il596wgjUc8" allow="autoplay; encrypted-media" frameborder="0" allowfullscreen></iframe>
-</center>
+You can edit any generated images using our web interface.
+The editing results are shown in a [demo video](https://www.youtube.com/watch?v=xcQqUJqu5WM).
 
 ## Image Editing Web Application
 
@@ -147,13 +142,7 @@ The editing results are shown in the video below.
 3. Semantic Image Editing: access `/edit` tab.
 
 4. Train a few-shot LSE: access `/train` tab. This functionality currently does not support model saving.
-The video below shows a demo of training a few-shot LSE:
-
-<center>
-  <video controls="controls" height="400px" loop="loop" autoplay='autoplay' src='doc/LinearGAN_Training.mp4' type="video/mp4">
-		Your browser does not support the video element.
-  </video>
-</center>
+There is a [demo](doc/LinearGAN_Training.mp4) of training a few-shot LSE.
 
 ## Common issues
 
@@ -161,4 +150,4 @@ The video below shows a demo of training a few-shot LSE:
 
 ## Acknowledgement
 
-This work borrows a lot from (GenForce)[https://github.com/genforce].
+This work borrows a lot from [GenForce](https://github.com/genforce).
