@@ -1,14 +1,23 @@
 # Linear Semantics of Generative Adversarial Networks
 
-This repo aims to introduce a discovery: linear transformations suffice to extract semantics from the generator's feature maps. In other words, the semantic mask corresponding to the generated image can be extracted from the generator's feature maps using `linear transformations`, which we abbreviate as the Linear Semantic Extractor (LSE). We verify this claim by comparing LSE to two nonlinear extraction methods, called Nonlinear Semantic Extractors (NSEs). It is found that the performance drop of the LSE relative to NSEs is negligible (less than 5%) in most cases.
-
-The discovering of GAN's linear semantic encoding allows the `few-shot` learning of LSE. Using 8 annotations, the few-shot LSE can match 70% performance of its fully supervised version. The few-shot LSE can enable semantic controllable image synthesis on GANs in few-shot settings. To be specific, we propose few-shot Semantic-Precise Image Editing and few-shot Semantic Conditional Synthesis. The few-shot SPIE means to edit the semantic layout of a generated image with a few annotations. The few-shot SCS refers to sample images matching a semantic mask target with the help of a few annotations.
-
-## Overview
-
-The pipeline of the Linear Semantic Extractor is shown below.
+## [Project Page](https://atlantixjj.github.io/LinearSemanticsGAN/) | [Paper](https://arxiv.org/abs/2104.00487) | [Download](https://drive.google.com/drive/folders/1e66ooGzbKZLoXoy7Up31U-ibCBjrNW9l?usp=sharing)
 
 ![pipeline](doc/pipeline.png)
+
+[Linear Semantics of Generative Adversarial Networks](https://arxiv.org/abs/2104.00487)
+
+[Jianjin Xu](https://atlantixjj.github.io/)<sup>1,2</sup>, [Changxi Zheng](http://www.cs.columbia.edu/~cxz/)<sup>1</sup>
+
+
+<sup>1</sup>Columbia University, <sup>2</sup>Panzhihua Univeristy
+
+In CVPR 2021.
+
+## Abstract
+
+Generative Adversarial Networks (GANs) are able to generate high-quality images, but it remains difficult to explicitly specify the semantics of synthesized images. In this work, we aim to better understand the semantic representation of GANs, and thereby enable semantic control in GAN's generation process. Interestingly, we find that a well-trained GAN encodes image semantics in its internal feature maps in a surprisingly simple way: a linear transformation of feature maps suffices to extract the generated image semantics.
+
+To verify this simplicity, we conduct extensive experiments on various GANs and datasets; and thanks to this simplicity, we are able to learn a semantic segmentation model for a trained GAN from a small number (e.g., 8) of labeled images. Last but not least, leveraging our findings, we propose two few-shot image editing approaches, namely Semantic-Conditional Sampling and Semantic Image Editing. Given a trained GAN and as few as eight semantic annotations, the user is able to generate diverse images subject to a user-provided semantic layout, and control the synthesized image semantics.
 
 ## Installation
 
@@ -18,7 +27,7 @@ The pipeline of the Linear Semantic Extractor is shown below.
 
 3. Install [torch-encoding](https://github.com/zhanghang1989/PyTorch-Encoding). `pip3 install git+https://github.com/zhanghang1989/PyTorch-Encoding`.
 
-4. Download [CelebAMask-HQ](https://github.com/switchablenorms/CelebAMask-HQ) dataset.
+4. Download the pretrained generators, test data from [Google Drive](https://drive.google.com/drive/folders/1e66ooGzbKZLoXoy7Up31U-ibCBjrNW9l?usp=sharing). Optionally, you can download the trained models in the paper.
 
 Folder structure:
 
@@ -33,10 +42,9 @@ Folder structure:
 `- expr
 `- models
 | `- pretrain
-|   `- pytorch # Download generators here
+|   `- pytorch # Download pretrained generators here
 `- predictors
-  `- pretrain
-    `- faceparse_unet_512.pth # Download
+  `- pretrain # Download pretrained predictors here
 ```
 
 
@@ -150,12 +158,6 @@ The video below shows a demo of training a few-shot LSE:
 ## Common issues
 
 1. If `pytorch-lightning` is giving too much warning like `You have set 17 number of classes which is different from predicted (15) and target (15) number of classes` below, you can disable them using `python -W ignore your_script.py`.
-
-## TODO
-
-1. Upload the data for SCS, SIE and pretrained GAN models.
-
-2. Create easy-to-use scripts for SIE and SCS.
 
 ## Acknowledgement
 
