@@ -4,7 +4,7 @@
 
 ![pipeline](doc/pipeline.png)
 
-[Linear Semantics of Generative Adversarial Networks](https://arxiv.org/abs/2104.00487)
+[Linear Semantics in Generative Adversarial Networks](https://arxiv.org/abs/2104.00487)
 
 [Jianjin Xu](https://atlantixjj.github.io/)<sup>1,2</sup>, [Changxi Zheng](http://www.cs.columbia.edu/~cxz/)<sup>1</sup>
 
