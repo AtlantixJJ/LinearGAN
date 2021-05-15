@@ -1,4 +1,4 @@
-# Linear Semantics of Generative Adversarial Networks
+# Linear Semantics in Generative Adversarial Networks
 
 ## [Project Page](https://atlantixjj.github.io/LinearSemanticsGAN/) | [Paper](https://arxiv.org/abs/2104.00487) | [Download](https://drive.google.com/drive/folders/1e66ooGzbKZLoXoy7Up31U-ibCBjrNW9l?usp=sharing)
 
